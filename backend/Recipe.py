@@ -8,8 +8,9 @@ class Recipe(object):
         that comprise the dish.
     :param instructions: A string, instructios on how to cook the dish.
     """
-    def __init__(self, name, contents=[], instructions=""):
+    def __init__(self, name, id=None, contents=[], instructions=""):
         self.name = name
+        self.id = id
         self.contents = contents
         self.instructions = instructions
 
@@ -31,7 +32,7 @@ ContentTuple = namedtuple('Content', 'ingredient units unit_type')
 
 class Content(ContentTuple):
     __slots__ = ()
-    def __new__(cls, ingredient, units, unit_type=""):
+    def __new__(cls, ingredient, units, unit_type=None):
         try:
             if not units or units < 0:
                 raise ValueError("units must be a positive number")

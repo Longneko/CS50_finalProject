@@ -4,16 +4,14 @@ class Ingredient(object):
     :param name: A string, name of the ingredient.
     :param category: A string, category of the ingredient.
     :param id: An integer, id of the ingredient in the SQLite DB.
-    :param allergies: A set, contains widespread allergies where the ingredient is known
-        to be the allergen.
-    :param tags: A set, contains arbitrary tags e.g. 'spicy'.
+    :param allergies: A set, contains widespread allergies where
+        the ingredient is known to be the allergen.
     """
-    def __init__(self, name, category, id=None, allergies=set(), tags=set()):
+    def __init__(self, name, category, id=None, allergies=set()):
         self.name = name
         self.category = category
         self.id = id
         self.allergies = allergies
-        self.tags = tags
 
     @property
     def name(self):
@@ -25,3 +23,10 @@ class Ingredient(object):
         if not value:
             raise RuntimeError("name must be a non-empty string")
         self._name = value
+
+    def __repr__(self):
+        return ('<Ingredient {!r}\n'
+                'category: {!r}\n'
+                'id: {!r}\n'
+                'allergies: {!r}>'
+                ).format(self.name, self.category, self.id, self.allergies)
