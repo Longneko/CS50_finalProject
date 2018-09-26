@@ -56,22 +56,22 @@ class Dual(IdAndNameTuple):
     E.g. ingredient category or allergy."""
     __slots__ = ()
     def __new__(cls, db_id, name):
-        if not validate_id(db_id):
+        if not Dual.validate_id(db_id):
             raise RuntimeError("db_id must be a positive integer")
-        if not validate_name(name):
+        if not Dual.validate_name(name):
             raise RuntimeError("name must be a non-empty string")
 
         return IdAndNameTuple.__new__(cls, db_id, name)
 
     def _replace(self, **kwargs):
         try:
-            if not validate_id(kwargs['db_id']):
+            if not Dual.validate_id(kwargs['db_id']):
                 raise RuntimeError("db_id must be a positive integer")
         except KeyError:
             pass
 
         try:
-            if not validate_id(kwargs['name']):
+            if not Dual.validate_id(kwargs['name']):
                 raise RuntimeError("name must be a non-empty string")
         except KeyError:
             pass
