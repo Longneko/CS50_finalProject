@@ -12,15 +12,16 @@ class DBHandler(object):
     """
     def __init__(self, db_path=DEFAULT_DB_PATH):
         self.db = sqlite3.connect(db_path)
-        self.db.execute('PRAGMA foreign_keys = ON;')
+        self.c = self.db.cursor()
+        self.c.execute('PRAGMA foreign_keys = ON;')
         self.db.commit()
 
     def __del__(self):
         self.db.close()
 
-    def init_db(self):
+    def create_schema(self):
         """Creates the required schema in an empty DB"""
-        self.db.executescript("""
+        self.c.executescript("""
                 CREATE TABLE ingredient_categories(
                   id INTEGER PRIMARY KEY,
                   name TEXT,
