@@ -8,9 +8,9 @@ class Recipe(object):
         that comprise the dish.
     :param instructions: A string, instructios on how to cook the dish.
     """
-    def __init__(self, name, id=None, contents=[], instructions=""):
+    def __init__(self, name, db_id=None, contents=[], instructions=""):
         self.name = name
-        self.id = id
+        self.db_id = db_id
         self.contents = contents
         self.instructions = instructions
 
@@ -31,6 +31,7 @@ class Recipe(object):
 ContentTuple = namedtuple('Content', 'ingredient units unit_type')
 
 class Content(ContentTuple):
+    """Represents quantity or amount of a specific ingredient in a dish"""
     __slots__ = ()
     def __new__(cls, ingredient, units, unit_type=None):
         try:
@@ -43,10 +44,10 @@ class Content(ContentTuple):
 
     def _replace(self, **kwargs):
         try:
-            if kwargs['units'] < 0:
+            if not kwargs['units'] or kwargs['units'] < 0:
                 raise ValueError("units must be a positive number")
         except ValueError:
-            raise ValueError("units must be a positive number")
+            raise RuntimeError("units must be a positive number")
         except KeyError:
             pass
 

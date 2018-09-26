@@ -69,3 +69,9 @@ class DBHandler(object):
                 """)
 
         self.db.commit()
+
+    def write_ingredient_category(self, name):
+        """Writes a new ingredient category to the DB"""
+        cat = (name,)
+        self.c.execute("INSERT INTO ingredient_categories (name) VALUES (?)", cat)
+        self.db.commit()
