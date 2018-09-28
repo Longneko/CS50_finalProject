@@ -1,30 +1,33 @@
 from collections import namedtuple
 
-class Recipe(object):
+from backend.DBEntry import DBEntry
+
+class Recipe(DBEntry):
     """A recipe of a dish.
 
-    :param name: A string, name of the recipe.
     :param contents: A list of Content namedtuples, ingredients and their amounts
         that comprise the dish.
     :param instructions: A string, instructios on how to cook the dish.
     """
     def __init__(self, name, db_id=None, contents=[], instructions=""):
-        self.name = name
-        self.db_id = db_id
+        super().__init__(name, db_id)
         self.contents = contents
         self.instructions = instructions
 
-    @property
-    def name(self):
-        """Get current name"""
-        return self._name
+    # <TODO> Contents representation to be reworked? Add allergies repr
+    def __repr__(self):
+        contents = ''
+        for content in self.contents:
+            contents += '\n  {} - {}'.format(content.ingredient.name, content.units,)
+            if content.unit_type:
+                contents += ' ' + content.unit_type
 
-    @name.setter
-    def name(self, value):
-        if not value:
-            raise RuntimeError("name must be a non-empty string")
-        self._name = value
-
+        return ('<Recipe {}\n'
+                ' db_id: {}\n'
+                ' Contents:'
+                ' {}\n'
+                '>'
+                ).format(self.name, self.db_id, contents, end='')
 
 # constructor validation from kindall's answer at
 # https://stackoverflow.com/questions/42146268/create-custom-namedtuple-type-with-extra-features
