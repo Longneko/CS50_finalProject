@@ -5,7 +5,7 @@ class DBEntry(object):
     :param db_id: An integer, id of the entry in the SQLite DB.
         Objects not yet stored in the DB must have None as their db_id.
     """
-    def __init__(self, name, db_id = None):
+    def __init__(self, name, db_id=None):
         self.name = name
         self.db_id = db_id
 
@@ -32,16 +32,17 @@ class DBEntry(object):
         self._db_id = value
 
     def __str__(self):
-        return ('{} ({})>').format(self.name, self.db_id)
+        return ("{} ({})").format(self.name, self.db_id)
 
 
 class IngredientCategory(DBEntry):
-    pass
+    def __str__(self):
+        return ("{} ({})").format(self.name, self.db_id)
 
 
 class Allergy(DBEntry):
-    pass
-
+    def __str__(self):
+        return ("{} ({})").format(self.name, self.db_id)
 
 def validate_db_id(db_id):
     try:

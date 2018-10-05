@@ -15,9 +15,9 @@ class Ingredient(DBEntry):
         self.allergies = allergies
 
     def __str__(self):
-        return ('<Ingredient {}\n'
-                ' category: {}\n'
-                ' db_id: {}\n'
-                ' allergies: {}\n'
-                '>'
+        return ("<Ingredient {}\n"
+                " category: {}\n"
+                " db_id: {}\n"
+                " allergies: {}\n"
+                ">"
                 ).format(self.name, self.category, self.db_id, self.allergies)
