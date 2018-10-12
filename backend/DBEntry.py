@@ -1,3 +1,7 @@
+import json
+from collections import namedtuple
+
+
 class DBEntry(object):
     """A basic object entry in a DB with mandatory id and a name fields
 
@@ -34,6 +38,9 @@ class DBEntry(object):
     def __str__(self):
         return ("{} ({})").format(self.name, self.db_id)
 
+    def toJSONifiable(self):
+        return vars(self)
+
 
 class IngredientCategory(DBEntry):
     def __str__(self):
@@ -43,6 +50,19 @@ class IngredientCategory(DBEntry):
 class Allergy(DBEntry):
     def __str__(self):
         return ("{} ({})").format(self.name, self.db_id)
+
+
+class FoodEncoder(json.JSONEncoder):
+    def default(self, obj): # pylint: disable=E0202
+        if isinstance(obj, (set)):
+            return list(obj)
+        try:
+            return obj.toJSONifiable()
+        except:
+            pass
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
+
 
 def validate_db_id(db_id):
     try:

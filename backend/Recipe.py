@@ -29,10 +29,16 @@ class Recipe(DBEntry):
                 " Instructions: {}>"
                 ).format(self.name, self.db_id, contents, self.instructions, end="")
 
-# constructor validation from kindall"s answer at
-# https://stackoverflow.com/questions/42146268/create-custom-namedtuple-type-with-extra-features
-ContentTuple = namedtuple("Content", "ingredient units unit_type")
+    def toJSONifiable(self):
+        dct = dict(self.__dict__)
+        contents_list = [item._asdict() for item in self.contents]
+        dct["contents"] = contents_list
+        return dct
 
+
+# constructor validation from kindall"s answer at
+# https://stackoverflow.com/a/42146452
+ContentTuple = namedtuple("ContentTuple", "ingredient units unit_type")
 class Content(ContentTuple):
     """Represents quantity or amount of a specific ingredient in a dish"""
     __slots__ = ()
@@ -55,3 +61,6 @@ class Content(ContentTuple):
             pass
 
         return super()._replace(**kwargs)
+
+    def toJSONifiable(self):
+        return self._asdict()
