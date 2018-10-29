@@ -18,9 +18,9 @@ class Recipe(DBEntry):
     def __str__(self):
         contents = ""
         for content in self.contents:
-            contents += "\n  {} - {}".format(content.ingredient.name, content.units,)
-            if content.unit_type:
-                contents += " " + content.unit_type
+            contents += "\n  {} - {}".format(content.ingredient.name, content.amount,)
+            if content.units:
+                contents += " " + content.units
 
         return ("<Recipe {}\n"
                 " db_id: {}\n"
@@ -38,25 +38,25 @@ class Recipe(DBEntry):
 
 # constructor validation from kindall"s answer at
 # https://stackoverflow.com/a/42146452
-ContentTuple = namedtuple("ContentTuple", "ingredient units unit_type")
+ContentTuple = namedtuple("ContentTuple", "ingredient amount units")
 class Content(ContentTuple):
     """Represents quantity or amount of a specific ingredient in a dish"""
     __slots__ = ()
-    def __new__(cls, ingredient, units, unit_type=None):
+    def __new__(cls, ingredient, amount, units=None):
         try:
-            if not units or units < 0:
-                raise ValueError("units must be a positive number")
+            if not amount >= 0:
+                raise ValueError("amount must be a positive number")
         except:
-            raise RuntimeError("units must be a positive number")
+            raise RuntimeError("amount must be a positive number")
 
-        return ContentTuple.__new__(cls, ingredient, units, unit_type)
+        return ContentTuple.__new__(cls, ingredient, amount, units)
 
     def _replace(self, **kwargs):
         try:
-            if not kwargs["units"] or kwargs["units"] < 0:
-                raise ValueError("units must be a positive number")
+            if not kwargs["amount"] >= 0:
+                raise ValueError("amount must be a positive number")
         except ValueError:
-            raise RuntimeError("units must be a positive number")
+            raise RuntimeError("amount must be a positive number")
         except KeyError:
             pass
 

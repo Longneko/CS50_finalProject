@@ -13,7 +13,7 @@ class DBHandler(object):
     :param db_path: A string, path to the target DB.
     """
     def __init__(self, db_path=DEFAULT_DB_PATH):
-        self.db = sqlite3.connect(db_path)
+        self.db = sqlite3.connect(db_path, check_same_thread=False)
         self.db.row_factory = sqlite3.Row
         self.c = self.db.cursor()
         self.c.execute("PRAGMA foreign_keys = ON;")
@@ -59,8 +59,8 @@ class DBHandler(object):
                 CREATE TABLE recipe_contents(
                   recipe_id INTEGER NOT NULL,
                   ingredient_id INTEGER NOT NULL,
-                  units INTEGER NOT NULL,
-                  unit_type TEXT DEFAULT NULL,
+                  amount INTEGER NOT NULL,
+                  units TEXT DEFAULT NULL,
                   PRIMARY KEY (recipe_id, ingredient_id),
                   FOREIGN KEY (recipe_id) REFERENCES recipes(id),
                   FOREIGN KEY (ingredient_id) REFERENCES ingredients(id)
@@ -278,10 +278,10 @@ class DBHandler(object):
 
         content_set = set()
         for c in contents:
-            content_set.add((recipe_id, c.ingredient.db_id, c.units,
-                             c.unit_type))
-        self.c.executemany("INSERT INTO recipe_contents (recipe_id, ingredient_id, units, "
-                           "unit_type) VALUES (?, ?, ?, ?)", content_set)
+            content_set.add((recipe_id, c.ingredient.db_id, c.amount,
+                             c.units))
+        self.c.executemany("INSERT INTO recipe_contents (recipe_id, ingredient_id, amount, "
+                           "units) VALUES (?, ?, ?, ?)", content_set)
 
         self.db.commit()
 
@@ -329,14 +329,14 @@ class DBHandler(object):
             missing_contents = {x for x in new_contents
                                 if x.ingredient.db_id in (new_ingredient_ids - old_ingredient_ids)}
             for c in missing_contents:
-                if self.recipe_add_content(db_id, c.ingredient.db_id, c.units, c.unit_type):
+                if self.recipe_add_content(db_id, c.ingredient.db_id, c.amount, c.units):
                     rows_affected += 1
 
             # Updating values of contents present in the old and new set
             missing_contents = {x for x in new_contents
                                 if x.ingredient.db_id in (old_ingredient_ids & new_ingredient_ids)}
             for c in missing_contents:
-                if self.recipe_edit_content(db_id, c.ingredient.db_id, c.units, c.unit_type):
+                if self.recipe_edit_content(db_id, c.ingredient.db_id, c.amount, c.units):
                     rows_affected += 1
 
 
@@ -346,15 +346,15 @@ class DBHandler(object):
 
         return 0
 
-    def recipe_add_content(self, recipe_id, ingredient_id, units, unit_type=None):
+    def recipe_add_content(self, recipe_id, ingredient_id, amount, units=None):
         """Add new content to a recipe in the DB. Return False if recipe is not found.
         Does not commit to DB.
         """
         if not self.exists("recipes", db_id=recipe_id):
             return False
 
-        t = (recipe_id, ingredient_id, units, unit_type)
-        self.c.execute("INSERT INTO recipe_contents (recipe_id, ingredient_id, units, unit_type) "
+        t = (recipe_id, ingredient_id, amount, units)
+        self.c.execute("INSERT INTO recipe_contents (recipe_id, ingredient_id, amount, units) "
                        "VALUES (?, ?, ?, ?)", t)
 
         return True
@@ -370,12 +370,12 @@ class DBHandler(object):
 
         return rows_affected
 
-    def recipe_edit_content(self, recipe_id, ingredient_id, units, unit_type=None):
+    def recipe_edit_content(self, recipe_id, ingredient_id, amount, units=None):
         """Edit a content in a recipe in the DB. Return False if recipe is not found.
         Does not commit to DB.
         """
-        t = (units, unit_type, recipe_id, ingredient_id)
-        self.c.execute("UPDATE recipe_contents SET units = ?, unit_type = ? "
+        t = (amount, units, recipe_id, ingredient_id)
+        self.c.execute("UPDATE recipe_contents SET amount = ?, units = ? "
                        "WHERE recipe_id = ? AND ingredient_id = ?", t)
         rows_affected = self.c.rowcount
 
@@ -530,13 +530,13 @@ class DBHandler(object):
 
         # Constructing contents set
         needle = (db_id,)
-        self.c.execute("SELECT ingredient_id, units, unit_type FROM recipe_contents "
+        self.c.execute("SELECT ingredient_id, amount, units FROM recipe_contents "
                        "WHERE recipe_id = ?", needle)
         rows = self.c.fetchall()
         contents = set()
         for row in rows:
             ingredient = self.fetch_ingredient(row["ingredient_id"])
-            content = Content(ingredient, row["units"], row["unit_type"])
+            content = Content(ingredient, row["amount"], row["units"])
             contents.add(content)
 
         # Constructing the Recipe object
@@ -613,3 +613,30 @@ class DBHandler(object):
             return False
 
         return True
+
+    def get_rows(self, table_name, **search_params):
+        """Return all rows matching search critera in a table.
+
+        :param table_name: A string. Name of the table were the object is to be located.
+        :param search_params: kwargs where keys are column names. Values must be exact match,
+            joined with AND in the SQL query.
+        """
+        try:
+            search_params["id"] = search_params.pop("db_id")
+        except KeyError:
+            pass
+        objects = [table_name.replace('"', '""')]
+        needle = tuple()
+        for key, value in search_params.items():
+            objects.append(key.replace('"', '""'))
+            needle += (value,)
+
+        query = 'SELECT * FROM "{}"'
+        if search_params:
+            query += ' WHERE "{}" = ?'
+        query = query + ' AND "{}" = ?'*(len(needle) - 1)
+
+        self.c.execute(query.format(*objects), needle)
+        rows = self.c.fetchall()
+
+        return rows

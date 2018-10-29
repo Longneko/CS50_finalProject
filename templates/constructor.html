@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Constructor
+{% endblock %}
+
+{% block main %}
+    {% set page = request.path[request.path.rfind("/")+1:] %}
+    <style>
+        #{{ page }} {
+            background-color: #0062CC;
+        }
+    </style>
+
+    <div class="btn-group btn-group-lg" role="group" aria-label="Manage Elements">
+        <a type="button" class="btn btn-secondary" id="allergies" href="/constructor/allergies">Allergies</a>
+        <a type="button" class="btn btn-secondary" id="ingredient_categories" href="/constructor/ingredient_categories">Ing. Categories</a>
+        <a type="button" class="btn btn-secondary" id="ingredients" href="/constructor/ingredients">Ingredients</a>
+        <a type="button" class="btn btn-secondary" id="recipes" href="/constructor/recipes">Recipes</a>
+    </div>
+    <br>
+    <br>
+    {% block create %}{% endblock %}
+    <br>
+
+    {% block table %}
+        {% if rows %}
+            <table class="table-sm table-hover table-bordered mx-auto">
+                <thead>
+                    <tr>
+                        {% for key in rows[0].keys() %}
+                            <th scope="col">{{ key | title }}</th>
+                        {% endfor %}
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            {% for item in row %}
+                                <td>
+                                    {{ item }}
+                                </td>
+                            {% endfor %}
+                            <td>
+                                edit delete
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    {% endblock %}
+
+{% endblock %}
