@@ -24,7 +24,7 @@ $(document).ready(function(){
         // remove previously added identical ingredients
         var index = -1;
         for ( var i = 0; i < contents.length; i++ ) {
-            if ( parseInt(contents[i]["ingredient_id"]) == ingredient_id) {
+            if ( contents[i]["ingredient_id"] == ingredient_id) {
                 index = i;
             }
         }
@@ -33,7 +33,7 @@ $(document).ready(function(){
             $("#" + ING_BADGE_ID_PREFIX + ingredient_id).remove();
         }
 
-        // Add ingredient badge to the ingredients lsit div
+        // Add ingredient badge to the ingredients list div
         var ingredient_name = $("#ingredient_select option:selected").text()
         $("#added_contents").append("<span class=\""+ ING_BADGE_CSS_CLASS + "\" id=\"" + ING_BADGE_ID_PREFIX + ingredient_id + "\">"
                                   + ingredient_name + ": " + amount + " " + units
@@ -47,14 +47,12 @@ $(document).ready(function(){
             units: units
         });
 
-        console.log(contents);
-
         // Reset input field values
         $("#ingredient_select").val(0);
+        $("#ingredient_select").focus()
         $("#amount").val("");
         $("#units").val("");
     });
-
 
     $("#recipe_new").submit(function() {
         $("#contents").val(JSON.stringify(contents))

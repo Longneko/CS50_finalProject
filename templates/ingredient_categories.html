@@ -1,23 +1,5 @@
-{% extends "constructor.html" %}
+{% extends "admin.html" %}
 
 {% block title %}
     Ingredient Categories
-{% endblock %}
-
-{% block create %}
-    <p>
-        <button class="btn btn-success" type="button" data-toggle="collapse" data-target="#collapsable_new" aria-expanded="false" aria-controls="collapsable_new">
-            Add new category
-        </button>
-    </p>
-    <div class="collapse" id="collapsable_new">
-        <form action="/constructor/ingredient_categories" method="post">
-            <div class="form-group">
-                <label for="name">Name</label>
-                <input type="text" class="form-control" id="name" name="name" required>
-                <small id="name" class="form-text text-muted">Names must be unique.</small>
-            </div>
-            <button type="submit" class="btn btn-primary">Save</button>
-        </form>
-    </div>
 {% endblock %}

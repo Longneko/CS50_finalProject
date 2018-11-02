@@ -60,3 +60,10 @@ main img
     margin: auto;
     text-align: center;
 }
+
+.pseudo-href
+{
+    cursor: pointer;
+    color: blue;
+    text-decoration: underline;
+}

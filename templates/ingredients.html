@@ -1,77 +1,45 @@
-{% extends "constructor.html" %}
+{% extends "admin.html" %}
 
 {% block title %}
     Ingredients
 {% endblock %}
 
-{% block create %}
-    <p>
-        <button class="btn btn-success" type="button" data-toggle="collapse" data-target="#collapsable_new" aria-expanded="false" aria-controls="collapsable_new">
-            Add new ingredient
-        </button>
-    </p>
-    <div class="collapse" id="collapsable_new">
-        <form action="/constructor/ingredients" method="post">
-            <div class="form-group">
-                <label for="name">Name</label>
-                <input type="text" class="form-control" id="name" name="name" required>
-                <small id="name" class="form-text text-muted">Names must be unique.</small>
-            </div>
-            <div class="form-group">
-                <label for="category_select">Category</label>
-                <select class="form-control" id="category_select" name="category_id" required>
-                    <option value=0 selected="selected" disabled></option>
-                    {% for c in categories %}
-                        <option value={{ c["id"] }}>{{ c["name"] }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button class="btn btn-warning" type="button" data-toggle="collapse" data-target="#collapsable_allergies" aria-expanded="false" aria-controls="collapsable_allergies">
-                Allergies
-            </button>
-            <div class="collapse" id="collapsable_allergies">
-                <ul>
-                    {% for a in allergies %}
-                        <li><input type=checkbox name=allergies value="{{ a['id'] }}"> {{ a["name"] }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            <br>
-            <br>
-            <button type="submit" class="btn btn-primary">Save</button>
-        </form>
-    </div>
+{% block app_scripts %}
+    <!-- JavaScript for this page -->
+    {{ super() }}
+    <script src="/static/scripts_ingredients.js" type="text/javascript"></script>
 {% endblock %}
 
-{% block table %}
-    {% if rows %}
-        <table class="table-sm table-hover table-bordered mx-auto">
-            <thead>
-                <tr>
-                    {% for key in rows[0].keys() %}
-                        <th scope="col">{{ key | title }}</th>
-                    {% endfor %}
-                    <th scope="col">Allergies</th>
-                    <th scope="col">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in rows %}
-                    <tr>
-                        {% for item in row %}
-                            <td>
-                                {{ item }}
-                            </td>
-                        {% endfor %}
-                        <td>
-                            {{ ingredient_allergies[row["id"]] | join(', ') }}
-                        </td>
-                        <td>
-                            edit delete
-                        </td>
-                    </tr>
+{% block form %}
+    <form id="form-db_write" action="/admin/{{ page }}" method="post">
+        <div class="form-group">
+            <input type="number" id="form-db_id" name="db_id" value="" hidden>
+            <label for="name">Name</label>
+            <input type="text" class="form-control" id="form-name" name="name" required>
+            <small class="form-text text-muted">Names must be unique.</small>
+        </div>
+        <div class="form-group">
+            <label for="select-category">Category</label>
+            <select class="form-control" id="select-category" name="category_id" required>
+                <option value=0 selected="selected" disabled></option>
+                {% for c in categories %}
+                    <option value={{ c["id"] }}>{{ c["name"] }}</option>
                 {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
+            </select>
+        </div>
+        <button class="btn btn-warning" type="button" data-toggle="collapse" data-target="#collapsable-allergies" aria-expanded="false" aria-controls="collapsable-allergies">
+            Allergies
+        </button>
+        <div class="collapse" id="collapsable-allergies">
+            {% for a in allergies %}
+                <label>
+                    <input class="ml-2" type="checkbox" id="check-allergy_{{ a['id'] }}" name="allergies" value="{{ a['id'] }}" data-default="false">
+                    {{ a["name"] }}
+                </label>
+            {% endfor %}
+        </div>
+        <br>
+        <br>
+        <input type="submit" class="hidden" id="form-db_write-submit" hidden/>
+    </form>
 {% endblock %}

@@ -18,6 +18,9 @@ from helpers import apology, login_required
 # Configure application
 app = Flask(__name__)
 
+# Enable zip() in Jinja tempaltes
+app.jinja_env.filters['zip'] = zip
+
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
@@ -52,122 +55,131 @@ def index():
     return render_template("index.html", **kwargs)
 
 
-@app.route("/constructor")
+@app.route("/admin")
 @login_required
-def constructor():
-    """Show constructor main page"""
+def admin():
+    """Show admin main page"""
 
-    return render_template("constructor.html", rows=False)
+    return render_template("admin.html", rows=False)
 
 
-@app.route("/constructor/allergies", methods=["GET", "POST"])
+@app.route("/admin/allergies", methods=["GET", "POST"])
 @login_required
-def constructor_allergies():
-    """Show allergies constructor page for GET.
+def admin_allergies():
+    """Show allergies admin page for GET.
     Write new allergies to DB for POST.
     """
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
-        rows = db.get_rows("allergies")
+        rows = db.get_summary("allergies")
         return render_template("allergies.html", rows=rows)
 
     # User reached route via POST (as by submitting a form via POST)
     name = request.form.get("name")
-    allergy = Allergy(name)
+    try:
+        db_id = int(request.form.get("db_id"))
+        if not db_id:
+            db_id = None
+    except:
+        db_id = None
+
+    allergy = Allergy(name, db_id)
 
     try:
-        result = db.write(allergy)
+        result = db.write(allergy, overwrite=True)
     except:
         result = False
 
     if result:
-        flash("Allergy added successfully!")
+        flash("Changes saved successfully!")
     else:
         flash("Something went wrong :(", category="danger")
 
-    return redirect("constructor/allergies")
+    return redirect("admin/allergies")
 
 
-@app.route("/constructor/ingredient_categories", methods=["GET", "POST"])
+@app.route("/admin/ingredient_categories", methods=["GET", "POST"])
 @login_required
-def constructor_ingredient_categories():
-    # <TODO>
-    """Show ingredient category constructor page for GET.
+def admin_ingredient_categories():
+    """Show ingredient category admin page for GET.
     Write new ingredient category to DB for POST.
     """
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
-        rows = db.get_rows("ingredient_categories")
+        rows = db.get_summary("ingredient_categories")
         return render_template("ingredient_categories.html", rows=rows)
 
     # User reached route via POST (as by submitting a form via POST)
     name = request.form.get("name")
-    ing_category = IngredientCategory(name)
     try:
-        result = db.write(ing_category)
+        db_id = int(request.form.get("db_id"))
+        if not db_id:
+            db_id = None
+    except:
+        db_id = None
+
+    ing_category = IngredientCategory(name, db_id)
+    try:
+        result = db.write(ing_category, overwrite=True)
     except:
         result = False
 
     if result:
-        flash("Ingredient category added successfully!")
+        flash("Changes saved successfully!")
     else:
         flash("Something went wrong :(", category="danger")
 
-    return redirect("constructor/ingredient_categories")
+    return redirect("admin/ingredient_categories")
 
 
-@app.route("/constructor/ingredients", methods=["GET", "POST"])
+@app.route("/admin/ingredients", methods=["GET", "POST"])
 @login_required
-def constructor_ingredients():
-    """Show ingredients constructor page for GET.
+def admin_ingredients():
+    """Show ingredients admin page for GET.
     Write new ingredients to DB for POST.
     """
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
-        rows = db.get_rows("ingredients")
+        rows = db.get_summary("ingredients")
         categories = db.get_rows("ingredient_categories")
         allergies = db.get_rows("allergies")
 
-        allergens = db.get_rows("allergens")
-        ingredient_allergies = {}
-        for a in allergens:
-            ingredient_id = a["ingredient_id"]
-            allergy_id = a["allergy_id"]
-            allergy_name = db.fetch_allergy(allergy_id).name
-            try:
-                ingredient_allergies[ingredient_id].append(allergy_name)
-            except:
-                ingredient_allergies[ingredient_id] = [allergy_name]
-
-        return render_template("ingredients.html", rows=rows, categories=categories, allergies=allergies, ingredient_allergies=ingredient_allergies)
+        return render_template("ingredients.html", rows=rows, categories=categories, allergies=allergies)
 
     # User reached route via POST (as by submitting a form via POST)
     name = request.form.get("name")
+    try:
+        db_id = int(request.form.get("db_id"))
+        if not db_id:
+            db_id = None
+    except:
+        db_id = None
+
     category_id = request.form.get("category_id")
     category = db.fetch_ingredient_category(category_id)
     allergy_ids = request.form.getlist("allergies")
     allergies = set()
-    for db_id in allergy_ids:
-        allergies.add(db.fetch_allergy(db_id))
+    for a_id in allergy_ids:
+        allergies.add(db.fetch_allergy(a_id))
 
-    ingredient = Ingredient(name, category, None, allergies)
+    ingredient = Ingredient(name, category, db_id, allergies)
     try:
         result = db.write(ingredient)
     except:
         result = False
 
     if result:
-        flash("Ingredient added successfully!")
+        flash("Changes saved successfully!")
     else:
         flash("Something went wrong :(", category="danger")
 
-    return redirect("constructor/ingredients")
+    return redirect("admin/ingredients")
 
 
-@app.route("/constructor/recipes", methods=["GET", "POST"])
+@app.route("/admin/recipes", methods=["GET", "POST"])
 @login_required
-def constructor_recipes():
-    """Show recipes constructor page for GET.
+def admin_recipes():
+    """Show recipes admin page for GET.
     Write new recipes to DB for POST.
     """
     # User reached route via GET (as by clicking a link or via redirect)
@@ -201,10 +213,21 @@ def constructor_recipes():
 
     # User reached route via POST (as by submitting a form via POST)
     name = request.form.get("name")
+    try:
+        db_id = int(request.form.get("db_id"))
+        if not db_id:
+            db_id = None
+    except:
+        db_id = None
+
     instructions = request.form.get("instructions")
 
     contents = set()
-    form_contents = json.loads(request.form.get("contents"))
+    try:
+        form_contents = json.loads(request.form.get("contents"))
+    except:
+        form_contents = None
+
     for fc in form_contents:
         ingredient = db.fetch_ingredient(fc["ingredient_id"])
 
@@ -219,23 +242,22 @@ def constructor_recipes():
 
         contents.add(Content(ingredient, amount, units))
 
-    recipe = Recipe(name, None, contents, instructions)
+    recipe = Recipe(name, db_id, contents, instructions)
     try:
         result = db.write(recipe)
     except:
         result = False
 
     if result:
-        flash("Recipe added successfully!")
+        flash("Changes saved successfully!")
     else:
         flash("Something went wrong :(", category="danger")
 
-    return redirect("constructor/recipes")
+    return redirect("admin/recipes")
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    # <TODO>
     """Log user in"""
 
     # Forget any user_id

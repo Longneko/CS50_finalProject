@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+
+{% set page = request.path[request.path.rfind("/")+1:] %}
+
+{% block title %}
+    admin
+{% endblock %}
+
+{% block app_scripts %}
+    <!-- JavaScript for this page -->
+    {{ super() }}
+    <script src="/static/scripts_modal.js" type="text/javascript"></script>
+{% endblock %}
+
+{% block main %}
+    <style>
+        #{{ page }} {
+            background-color: #0062CC;
+        }
+    </style>
+
+    <div class="btn-group btn-group-lg" role="group" aria-label="Manage Elements">
+        <a type="button" class="btn btn-secondary" id="allergies" href="/admin/allergies">Allergies</a>
+        <a type="button" class="btn btn-secondary" id="ingredient_categories" href="/admin/ingredient_categories">Ing. Categories</a>
+        <a type="button" class="btn btn-secondary" id="ingredients" href="/admin/ingredients">Ingredients</a>
+        <a type="button" class="btn btn-secondary" id="recipes" href="/admin/recipes">Recipes</a>
+    </div>
+    <br>
+    <br>
+
+    {% if rows %}
+        {% block modal %}
+            <!-- Modal edit window-->
+            <div class="modal fade" id="modal-form" tabindex="-1" role="dialog" aria-labelledby="modal-form-label" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modal-form-label">Edit element</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            {% block form %}
+                                <form id="form-db_write" action="/admin/{{ page }}" method="post">
+                                    <div class="form-group">
+                                        <input type="number" id="form-db_id" name="db_id" value="" hidden>
+                                        <label for="name">Name</label>
+                                        <input type="text" class="form-control" id="form-name" name="name" required>
+                                        <small class="form-text text-muted">Names must be unique.</small>
+                                    </div>
+                                    <input type="submit" class="hidden" id="form-db_write-submit" hidden/>
+                                </form>
+                            {% endblock %}
+                        </div>
+                        <div class="modal-footer">
+                            <label class="btn btn-secondary" data-dismiss="modal">Close</label>
+                            <label for="form-db_write-submit" class="btn btn-primary" id="modal-edit-save">Save</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endblock %}
+
+        {% block create %}
+            <p>
+                <button type="button" class="btn btn-success trigger-form-new" data-toggle="modal" data-target="#modal-form">New</button>
+            </p>
+
+            </div>
+        {% endblock %}
+        <br>
+
+        {% block table %}
+            <table class="table-sm table-hover table-bordered mx-auto">
+                <thead>
+                    <tr>
+                        {% for key in rows[0].keys() %}
+                            <th scope="col">{{ key | title }}</th>
+                        {% endfor %}
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            {% for key, value in row.keys()|zip(row) %}
+                                <td id="td_{{ key }}_{{ row["id"] }}">
+                                    {{ value }}
+                                </td>
+                            {% endfor %}
+                            <td>
+                                <!-- Button trigger modal -->
+                                <span class="pseudo-href trigger-form-edit" data-toggle="modal" data-target="#modal-form" data-db_id="{{ row["id"] }}">
+                                    edit
+                                </span>
+                                delete
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endblock %}
+    {% endif %}
+{% endblock %}

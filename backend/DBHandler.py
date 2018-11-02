@@ -108,6 +108,7 @@ class DBHandler(object):
                                                               x.allergies),
             }
             affected_rows = d[type(item).__name__](item)
+
             return affected_rows
 
         # if new item is provided
@@ -121,6 +122,7 @@ class DBHandler(object):
                                                          x.allergies),
         }
         item.db_id = d[type(item).__name__](item)
+
         return item.db_id
 
 
@@ -634,9 +636,98 @@ class DBHandler(object):
         query = 'SELECT * FROM "{}"'
         if search_params:
             query += ' WHERE "{}" = ?'
-        query = query + ' AND "{}" = ?'*(len(needle) - 1)
+            query += ' AND "{}" = ?'*(len(needle) - 1)
 
         self.c.execute(query.format(*objects), needle)
+        rows = self.c.fetchall()
+
+        return rows
+
+    def get_summary(self, obj_type):
+        """Return summary table for selected food object.
+        Is an aggregating alias method. See individual methods for columns list.
+        """
+        d = {
+            "allergies": lambda _: self.get_summary_allergies(),
+            "ingredient_categories": lambda _: self.get_summary_ingredient_categories(),
+            "ingredients": lambda _: self.get_summary_ingredients(),
+            # "recipes": lambda _: self.get_summary_recipes(),
+        }
+
+        return d[obj_type]("")
+
+    def get_summary_allergies(self):
+        """Return summary table for Allergy objects with columns:
+        id: allergy db_id.
+        name: allergy name.
+        dependents: number of objects with this allergy - ingredients and users.
+        """
+        self.c.execute("SELECT id, name, "
+                       "  (COUNT(ingredient_id) + COUNT(user_id)) as dependents "
+                       "FROM allergies "
+                       "LEFT JOIN allergens "
+                       "  ON allergies.id = allergens.allergy_id "
+                       "LEFT JOIN user_allergies "
+                       "  ON allergies.id = user_allergies.allergy_id "
+                       "GROUP BY allergies.id "
+                       "ORDER BY allergies.name ASC"\
+                       )
+        rows = self.c.fetchall()
+
+        return rows
+
+    def get_summary_ingredient_categories(self):
+        """Return summary table for IngredientCategory objects with columns:
+        id: category db_id.
+        name: category name.
+        dependents: number of objects with this category - ingredients.
+        """
+        self.c.execute("SELECT ingredient_categories.id, ingredient_categories.name, "
+                       "  COUNT(ingredients.id) as dependents "
+                       "FROM ingredient_categories "
+                       "LEFT JOIN ingredients "
+                       "  ON ingredient_categories.id = ingredients.id "
+                       "GROUP BY ingredient_categories.id "
+                       "ORDER BY ingredient_categories.name ASC"
+                       )
+        rows = self.c.fetchall()
+
+        return rows
+
+    def get_summary_ingredients(self):
+        """Return summary table for Ingrend objects with columns:
+        id: ingredient db_id.
+        name: ingredient name.
+        category: ingredient category name.
+        allergies: string listing ingredient allergies.
+        dependents: number of objects with this category - recipe contents.
+        """
+        self.c.execute("SELECT ingredients.id, ingredients.name, "
+                       "  ingredient_categories.name as category, IFNULL(ingredient_allergies.allergies, \"\") as allergies, "
+                       "  COUNT(recipe_contents.recipe_id) as dependents "
+                       "FROM ingredients "
+                       "LEFT JOIN ingredient_categories "
+                       "  ON ingredients.category_id = ingredient_categories.id "
+                       "LEFT JOIN "
+
+                       # Getting a table with ingredients' allergies' names in an intermidiate
+                       # tables  to sort by names and group by ingredient before concatenation
+                       "  (SELECT ingredient_id, GROUP_CONCAT(name, \", \") as allergies FROM "
+                       "    (SELECT allergens.ingredient_id, allergies.name "
+                       "      FROM allergens "
+                       "      LEFT JOIN allergies "
+                       "      ON allergens.allergy_id = allergies.id "
+                       "      ORDER BY allergies.name ASC "
+                       "    ) "
+                       "    GROUP BY ingredient_id "
+                       "  ) as ingredient_allergies "
+
+                       "  ON ingredients.id = ingredient_allergies.ingredient_id "
+                       "LEFT JOIN recipe_contents "
+                       "  ON ingredients.id = recipe_contents.ingredient_id "
+                       "GROUP BY ingredients.id "
+                       "ORDER BY ingredients.name ASC"
+                       )
         rows = self.c.fetchall()
 
         return rows
