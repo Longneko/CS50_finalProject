@@ -17,11 +17,13 @@
 # row[key] is scoped outside the "summary_td" block of the admin.html #
 {% block summary_td %}
     {% if row[key][0]|is_content %}
-        <ul>
-            {% for item in row[key] %}
-                <li>{{ content_to_td(item) }}</li>
-            {% endfor %}
-        </ul>
+        <td class="td-list">
+            <ul>
+                {% for item in row[key] %}
+                    <li>{{ content_to_td(item) }}</li>
+                {% endfor %}
+            </ul>
+        </td>
     {% else %}
         {{ super() }}
     {% endif %}

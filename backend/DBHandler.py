@@ -704,7 +704,7 @@ class DBHandler(object):
                        "  COUNT(ingredients.id) as dependents "
                        "FROM ingredient_categories "
                        "LEFT JOIN ingredients "
-                       "  ON ingredient_categories.id = ingredients.id "
+                       "  ON ingredient_categories.id = ingredients.category_id "
                        "GROUP BY ingredient_categories.id "
                        "ORDER BY ingredient_categories.name ASC"
                        )
@@ -788,7 +788,7 @@ class DBHandler(object):
                 try:
                     row["dependents"]
                 except KeyError:
-                    row["dependents"] == 0
+                    row["dependents"] = 0
 
                 row = next(it_rows)
 
@@ -861,7 +861,7 @@ class DBHandler(object):
             }
             try:
                 row["contents"].append(content)
-            except:
+            except KeyError:
                 row["contents"] = [content]
 
         # Fill remaining rows with empty content lists
@@ -869,7 +869,7 @@ class DBHandler(object):
         while not finished:
             try:
                 row = next(it_rows)
-                row["allergies"] = []
+                row["contents"] = []
             except StopIteration:
                 finished = True
 

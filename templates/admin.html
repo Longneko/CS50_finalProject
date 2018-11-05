@@ -2,13 +2,17 @@
 
 {% macro var_to_td(var) -%}
     {% if var|is_iterable and not var|is_string %}
-        <ul class="td-list">
-            {% for item in var %}
-                <li>{{ item }}</li>
-            {% endfor %}
-        </ul>
+        <td class="td-list">
+            <ul >
+                {% for item in var %}
+                    <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </td>
     {% else %}
-        {{ var|default("", true) }}
+        <td>
+            {{ var|default("", true) }}
+        </td>
     {% endif %}
 {%- endmacro %}
 
@@ -97,9 +101,9 @@
                     {% for row in rows %}
                         <tr>
                             {% for key in row.keys() %}
-                                <td id="td_{{ key }}_{{ row["id"] }}">
-                                    {% block summary_td scoped %}{{ var_to_td(row[key]) }}{% endblock %}
-                                </td>
+                                {% block summary_td scoped %}
+                                   {{ var_to_td(row[key]) }}
+                                {% endblock %}
                             {% endfor %}
                             <td>
                                 <!-- Button trigger modal -->
