@@ -1,5 +1,17 @@
 {% extends "layout.html" %}
 
+{% macro var_to_td(var) -%}
+    {% if var|is_iterable and not var|is_string %}
+        <ul class="td-list">
+            {% for item in var %}
+                <li>{{ item }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        {{ var|default("", true) }}
+    {% endif %}
+{%- endmacro %}
+
 {% set page = request.path[request.path.rfind("/")+1:] %}
 
 {% block title %}
@@ -20,10 +32,10 @@
     </style>
 
     <div class="btn-group btn-group-lg" role="group" aria-label="Manage Elements">
-        <a type="button" class="btn btn-secondary" id="allergies" href="/admin/allergies">Allergies</a>
-        <a type="button" class="btn btn-secondary" id="ingredient_categories" href="/admin/ingredient_categories">Ing. Categories</a>
-        <a type="button" class="btn btn-secondary" id="ingredients" href="/admin/ingredients">Ingredients</a>
-        <a type="button" class="btn btn-secondary" id="recipes" href="/admin/recipes">Recipes</a>
+        <a type="button" class="btn btn-secondary" href="/admin/allergies">Allergies</a>
+        <a type="button" class="btn btn-secondary" href="/admin/ingredient_categories">Ing. Categories</a>
+        <a type="button" class="btn btn-secondary" href="/admin/ingredients">Ingredients</a>
+        <a type="button" class="btn btn-secondary" href="/admin/recipes">Recipes</a>
     </div>
     <br>
     <br>
@@ -76,7 +88,7 @@
                 <thead>
                     <tr>
                         {% for key in rows[0].keys() %}
-                            <th scope="col">{{ key | title }}</th>
+                            <th scope="col">{{ key|title }}</th>
                         {% endfor %}
                         <th scope="col">Actions</th>
                     </tr>
@@ -84,9 +96,9 @@
                 <tbody>
                     {% for row in rows %}
                         <tr>
-                            {% for key, value in row.keys()|zip(row) %}
+                            {% for key in row.keys() %}
                                 <td id="td_{{ key }}_{{ row["id"] }}">
-                                    {{ value }}
+                                    {% block summary_td scoped %}{{ var_to_td(row[key]) }}{% endblock %}
                                 </td>
                             {% endfor %}
                             <td>

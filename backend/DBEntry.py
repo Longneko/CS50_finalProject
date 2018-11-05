@@ -39,7 +39,7 @@ class DBEntry(object):
         return ("{} ({})").format(self.name, self.db_id)
 
     def toJSONifiable(self):
-        return vars(self)
+        return {key.lstrip("_"): val for key, val in vars(self).items()}
 
 
 class IngredientCategory(DBEntry):

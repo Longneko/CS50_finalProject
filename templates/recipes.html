@@ -1,5 +1,32 @@
 {% extends "admin.html" %}
 
+{% macro content_to_td(content) -%}
+    {% set ns = namespace(content=content, td_str="") %}
+    {% set ns.td_str = ns.content["ingredient"] %}
+    {% if ns.content["amount"] %}
+        {% set ns.td_str = ns.td_str + " - " + ns.content["amount"]|string %}
+    {% endif %}
+    {% if ns.content["units"] %}
+        {% set ns.td_str = ns.td_str + " " + ns.content["units"] %}
+    {% endif %}
+
+    {{ ns.td_str }}
+{%- endmacro %}
+
+
+# row[key] is scoped outside the "summary_td" block of the admin.html #
+{% block summary_td %}
+    {% if row[key][0]|is_content %}
+        <ul>
+            {% for item in row[key] %}
+                <li>{{ content_to_td(item) }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        {{ super() }}
+    {% endif %}
+{% endblock %} %}
+
 {% block app_scripts %}
     <!-- JavaScript for this page -->
     {{ super() }}
@@ -59,42 +86,4 @@
         <br>
         <label for="new_save" class="btn btn-primary">Save</label>
     </div>
-{% endblock %}
-
-
-{% block table %}
-    {% if rows %}
-        <table class="table-sm table-hover table-bordered mx-auto">
-            <thead>
-                <tr>
-                    {% for key in rows[0].keys() %}
-                        <th scope="col">{{ key | title }}</th>
-                    {% endfor %}
-                    <th scope="col">Contents</th>
-                    <th scope="col">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in rows %}
-                    <tr>
-                        {% for item in row %}
-                            <td>
-                                {{ item }}
-                            </td>
-                        {% endfor %}
-                        <td>
-                            <ul class="td-list">
-                                {% for content in recipe_contents[row["id"]] %}
-                                    <li>{{ content | join(" ")}}</li>
-                                {% endfor %}
-                            </ul>
-                        </td>
-                        <td>
-                            edit delete
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
 {% endblock %}

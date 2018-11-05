@@ -13,13 +13,16 @@ from backend.Ingredient import Ingredient
 from backend.User import User
 from backend.DBHandler import DBHandler
 from backend.DBEntry import FoodEncoder, Allergy, IngredientCategory
-from helpers import apology, login_required
+from helpers import apology, login_required, is_string, is_iterable, is_content
 
 # Configure application
 app = Flask(__name__)
 
-# Enable zip() in Jinja tempaltes
+# Enable some  type testing and zip() in Jinja tempaltes
 app.jinja_env.filters['zip'] = zip
+app.jinja_env.filters['is_string'] = is_string
+app.jinja_env.filters['is_iterable'] = is_iterable
+app.jinja_env.filters['is_content'] = is_content
 
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -50,7 +53,9 @@ def index():
     # <TODO>
     """Show user's home page"""
 
-    kwargs = {}
+    kwargs = {
+        "rows": {}
+    }
 
     return render_template("index.html", **kwargs)
 
@@ -71,7 +76,7 @@ def admin_allergies():
     """
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
-        rows = db.get_summary("allergies")
+        rows = db.get_summary("allergies", name_sort=True)
         return render_template("allergies.html", rows=rows)
 
     # User reached route via POST (as by submitting a form via POST)
@@ -106,7 +111,7 @@ def admin_ingredient_categories():
     """
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
-        rows = db.get_summary("ingredient_categories")
+        rows = db.get_summary("ingredient_categories", name_sort=True)
         return render_template("ingredient_categories.html", rows=rows)
 
     # User reached route via POST (as by submitting a form via POST)
@@ -140,9 +145,9 @@ def admin_ingredients():
     """
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
-        rows = db.get_summary("ingredients")
-        categories = db.get_rows("ingredient_categories")
-        allergies = db.get_rows("allergies")
+        rows = db.get_summary("ingredients", name_sort=True)
+        categories = db.get_rows("ingredient_categories", "name ASC")
+        allergies = db.get_rows("allergies", "name ASC")
 
         return render_template("ingredients.html", rows=rows, categories=categories, allergies=allergies)
 
@@ -164,7 +169,7 @@ def admin_ingredients():
 
     ingredient = Ingredient(name, category, db_id, allergies)
     try:
-        result = db.write(ingredient)
+        result = db.write(ingredient, overwrite=True)
     except:
         result = False
 
@@ -185,7 +190,7 @@ def admin_recipes():
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
         # get recipe list for the table
-        rows = db.get_rows("recipes")
+        rows = db.get_summary("recipes", name_sort=True)
         ingredients = db.get_rows("ingredients")
 
         # contruct a list of tuple of contents of each recipe for the table
@@ -350,6 +355,35 @@ def register():
 
         return render_template("register.html")
 
+@app.route("/json", methods=["GET", "POST"])
+@login_required
+def get_JSON():
+    """Get JSON repr of an oject"""
+    if request.method == "POST" and request.form:
+        obj_type = request.form.get("obj_type")
+        db_id = request.form.get("db_id")
+    if request.method  == "GET"and request.args:
+        obj_type = request.args.get("obj_type")
+        db_id = request.args.get("db_id")
+    try:
+        db_id = int(db_id)
+    except:
+        pass
+
+    d = {
+        "allergy":             lambda x: db.fetch_allergy(x),
+        "ingredient_category": lambda x: db.fetch_ingredient_category(x),
+        "ingredient":          lambda x: db.fetch_ingredient(x),
+        "recipe":              lambda x: db.fetch_recipe(x),
+    }
+    obj = d[obj_type](db_id)
+
+    response = app.response_class(
+        response=enc.encode(obj),
+        mimetype='application/json'
+    )
+
+    return response
 
 def errorhandler(e):
     """Handle error"""

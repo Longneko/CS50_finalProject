@@ -5,6 +5,9 @@ import locale
 from flask import redirect, render_template, request, session
 from functools import wraps
 
+from backend.Recipe import Content
+
+
 def apology(message, code=400):
     """Render message as an apology to user."""
     def escape(s):
@@ -32,3 +35,23 @@ def login_required(f):
             return redirect("/login")
         return f(*args, **kwargs)
     return decorated_function
+
+# filter for Jinja
+def is_string(x):
+    return isinstance(x, str)
+
+# filter for Jinja
+def is_iterable(x):
+    try:
+        iter(x)
+        return True
+    except:
+        return False
+
+# filter for Jinja
+def is_content(x):
+    content_keys = ["ingredient", "amount", "units"]
+    try:
+        return all(key in x.keys() for key in content_keys)
+    except:
+        return False

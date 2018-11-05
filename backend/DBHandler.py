@@ -125,7 +125,6 @@ class DBHandler(object):
 
         return item.db_id
 
-
     def write_ingredient_category(self, name):
         """Write a new ingredient category to the DB. Return id of the new DB entry"""
         category = (name,)
@@ -616,10 +615,11 @@ class DBHandler(object):
 
         return True
 
-    def get_rows(self, table_name, **search_params):
+    def get_rows(self, table_name, order_by=None, **search_params):
         """Return all rows matching search critera in a table.
 
         :param table_name: A string. Name of the table were the object is to be located.
+        :param order_by: A string. Must be name of the column and order type to order by e.g. 'name ASC'.
         :param search_params: kwargs where keys are column names. Values must be exact match,
             joined with AND in the SQL query.
         """
@@ -638,29 +638,41 @@ class DBHandler(object):
             query += ' WHERE "{}" = ?'
             query += ' AND "{}" = ?'*(len(needle) - 1)
 
+        if order_by:
+            query += " ORDER BY " + order_by
+
         self.c.execute(query.format(*objects), needle)
         rows = self.c.fetchall()
 
         return rows
 
-    def get_summary(self, obj_type):
+    def get_summary(self, obj_type, name_sort=False):
         """Return summary table for selected food object.
         Is an aggregating alias method. See individual methods for columns list.
+
+        param obj_type: A string. Type of object for the summary. One of:
+            ingredients
+            ingredient_categories
+            ingredients
+            recipes
+        param name_sort: A boolean. If True, summary will be recursively sorted by object name ascending.
         """
         d = {
-            "allergies": lambda _: self.get_summary_allergies(),
-            "ingredient_categories": lambda _: self.get_summary_ingredient_categories(),
-            "ingredients": lambda _: self.get_summary_ingredients(),
-            # "recipes": lambda _: self.get_summary_recipes(),
+            "allergies"            : lambda x: self.get_summary_allergies(x),
+            "ingredient_categories": lambda x: self.get_summary_ingredient_categories(x),
+            "ingredients"          : lambda x: self.get_summary_ingredients(x),
+            "recipes"              : lambda x: self.get_summary_recipes(x),
         }
 
-        return d[obj_type]("")
+        return d[obj_type](name_sort)
 
-    def get_summary_allergies(self):
-        """Return summary table for Allergy objects with columns:
+    def get_summary_allergies(self, name_sort=False):
+        """Return summary table for Allergy entries with columns:
         id: allergy db_id.
         name: allergy name.
         dependents: number of objects with this allergy - ingredients and users.
+
+        param name_sort: A boolean. If True, summary will be recursively sorted by object name ascending.
         """
         self.c.execute("SELECT id, name, "
                        "  (COUNT(ingredient_id) + COUNT(user_id)) as dependents "
@@ -674,13 +686,19 @@ class DBHandler(object):
                        )
         rows = self.c.fetchall()
 
+        if name_sort:
+            rows.sort(key=lambda x: x["name"].lower())
+
+
         return rows
 
-    def get_summary_ingredient_categories(self):
-        """Return summary table for IngredientCategory objects with columns:
+    def get_summary_ingredient_categories(self, name_sort=False):
+        """Return summary table for IngredientCategory entries with columns:
         id: category db_id.
         name: category name.
         dependents: number of objects with this category - ingredients.
+
+        param name_sort: A boolean. If True, summary will be recursively sorted by object name ascending.
         """
         self.c.execute("SELECT ingredient_categories.id, ingredient_categories.name, "
                        "  COUNT(ingredients.id) as dependents "
@@ -692,42 +710,173 @@ class DBHandler(object):
                        )
         rows = self.c.fetchall()
 
+        if name_sort:
+            rows.sort(key=lambda x: x["name"].lower())
+
         return rows
 
-    def get_summary_ingredients(self):
-        """Return summary table for Ingrend objects with columns:
+    def get_summary_ingredients(self, name_sort=False):
+        """Return summary table for Ingredient entries with columns:
         id: ingredient db_id.
         name: ingredient name.
         category: ingredient category name.
-        allergies: string listing ingredient allergies.
+        allergies: list of allergies.
         dependents: number of objects with this category - recipe contents.
+
+        param name_sort: A boolean. If True, summary will be recursively sorted by object name ascending.
         """
+        rows = []
+
+        # Get id, name and category of ingredients
         self.c.execute("SELECT ingredients.id, ingredients.name, "
-                       "  ingredient_categories.name as category, IFNULL(ingredient_allergies.allergies, \"\") as allergies, "
-                       "  COUNT(recipe_contents.recipe_id) as dependents "
+                       "  ingredient_categories.name as category "
                        "FROM ingredients "
                        "LEFT JOIN ingredient_categories "
                        "  ON ingredients.category_id = ingredient_categories.id "
-                       "LEFT JOIN "
+                       "ORDER BY ingredients.id ASC"
+        )
+        for db_row in self.c.fetchall():
+            row = {}
+            for key, value in zip(db_row.keys(), db_row):
+                row[key] = value
+            rows.append(row)
 
-                       # Getting a table with ingredients' allergies' names in an intermidiate
-                       # tables  to sort by names and group by ingredient before concatenation
-                       "  (SELECT ingredient_id, GROUP_CONCAT(name, \", \") as allergies FROM "
-                       "    (SELECT allergens.ingredient_id, allergies.name "
-                       "      FROM allergens "
-                       "      LEFT JOIN allergies "
-                       "      ON allergens.allergy_id = allergies.id "
-                       "      ORDER BY allergies.name ASC "
-                       "    ) "
-                       "    GROUP BY ingredient_id "
-                       "  ) as ingredient_allergies "
 
-                       "  ON ingredients.id = ingredient_allergies.ingredient_id "
-                       "LEFT JOIN recipe_contents "
-                       "  ON ingredients.id = recipe_contents.ingredient_id "
-                       "GROUP BY ingredients.id "
-                       "ORDER BY ingredients.name ASC"
+        # Get allergy lists
+        self.c.execute("SELECT allergens.ingredient_id, allergies.name as allergy_name "
+                       "FROM allergens "
+                       "LEFT JOIN allergies "
+                       "  ON allergens.allergy_id = allergies.id "
+                       "ORDER BY allergens.ingredient_id ASC"
                        )
-        rows = self.c.fetchall()
+        it_rows = iter(rows)
+        row = next(it_rows)
+        for db_row in self.c.fetchall():
+            while not db_row["ingredient_id"] == row["id"]:
+                # Ensure at least an empty 'cell' exists for this ingredient before moving to next
+                try:
+                    row["allergies"]
+                except KeyError:
+                    row["allergies"] = []
+                row = next(it_rows)
+
+            try:
+                row["allergies"].append(db_row["allergy_name"])
+            except:
+                row["allergies"] = [db_row["allergy_name"]]
+
+        # Fill remaining rows with empty allergy lists
+        finished = False
+        while not finished:
+            try:
+                row = next(it_rows)
+                row["allergies"] = []
+            except StopIteration:
+                finished = True
+
+
+        # Get dependents
+        self.c.execute("SELECT ingredient_id, COUNT(recipe_id) as dependents FROM recipe_contents "
+                       "GROUP BY ingredient_id "
+                       "ORDER BY ingredient_id ASC"
+                       )
+        it_rows = iter(rows)
+        row = next(it_rows)
+        for db_row in self.c.fetchall():
+            while not db_row["ingredient_id"] == row["id"]:
+                # Set dependents = 0 for ingredients that don't exist in recipe_contents table
+                try:
+                    row["dependents"]
+                except KeyError:
+                    row["dependents"] == 0
+
+                row = next(it_rows)
+
+            row["dependents"] = db_row["dependents"]
+
+        # Fill remaining rows with dependents = 0
+        finished = False
+        while not finished:
+            try:
+                row = next(it_rows)
+                row["dependents"] = 0
+            except StopIteration:
+                finished = True
+
+
+        if name_sort:
+            rows.sort(key=lambda x: x["name"].lower())
+            for row in rows:
+                row["allergies"].sort(key=str.lower)
+
+
+        return rows
+
+    def get_summary_recipes(self, name_sort=False):
+        """Return summary table for Recipe entries with columns:
+        id: recipe db_id.
+        name: recipe name.
+        instructions: instructions on how to prepare the dish.
+        contents: string listing ingredients and their amounts.
+
+        param name_sort: A boolean. If True, summary will be recursively sorted by object name ascending.
+        """
+        rows = []
+
+        # Get id, name and category of ingredients
+        self.c.execute("SELECT id, name, instructions "
+                       "FROM recipes "
+                       "ORDER BY id ASC"
+        )
+        for db_row in self.c.fetchall():
+            row = {}
+            for key, value in zip(db_row.keys(), db_row):
+                row[key] = value
+            rows.append(row)
+
+
+        # Get content lists
+        self.c.execute("SELECT recipe_contents.recipe_id, ingredients.name as ingredient, "
+                       "  recipe_contents.amount, recipe_contents.units "
+                       "FROM recipe_contents "
+                       "LEFT JOIN ingredients "
+                       "  ON recipe_contents.ingredient_id = ingredients.id "
+                       "ORDER BY recipe_id ASC"
+                       )
+        it_rows = iter(rows)
+        row = next(it_rows)
+        for db_row in self.c.fetchall():
+            while not db_row["recipe_id"] == row["id"]:
+                # Ensure at least an empty 'cell' exists for this recipe before moving to next
+                try:
+                    row["contents"]
+                except KeyError:
+                    row["contents"] = []
+                row = next(it_rows)
+
+            content = {
+                "ingredient": db_row["ingredient"],
+                "amount"    : db_row["amount"],
+                "units"     : db_row["units"],
+            }
+            try:
+                row["contents"].append(content)
+            except:
+                row["contents"] = [content]
+
+        # Fill remaining rows with empty content lists
+        finished = False
+        while not finished:
+            try:
+                row = next(it_rows)
+                row["allergies"] = []
+            except StopIteration:
+                finished = True
+
+        if name_sort:
+            rows.sort(key=lambda x: x["name"].lower())
+            for row in rows:
+                row["contents"].sort(key=lambda x: x["ingredient"].lower())
+
 
         return rows
