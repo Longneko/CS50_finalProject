@@ -1,5 +1,7 @@
 {% extends "admin.html" %}
 
+{% import "admin.html" as admin %}
+
 {% block title %}
     Ingredients
 {% endblock %}
@@ -11,35 +13,25 @@
 {% endblock %}
 
 {% block form %}
-    <form id="form-db_write" action="/admin/{{ page }}" method="post">
-        <div class="form-group">
-            <input type="number" id="form-db_id" name="db_id" value="" hidden>
-            <label for="name">Name</label>
-            <input type="text" class="form-control" id="form-name" name="name" required>
-            <small class="form-text text-muted">Names must be unique.</small>
-        </div>
-        <div class="form-group">
-            <label for="select-category">Category</label>
-            <select class="form-control" id="select-category" name="category_id" required>
-                <option value=0 selected="selected" disabled></option>
-                {% for c in categories %}
-                    <option value={{ c["id"] }}>{{ c["name"] }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <button class="btn btn-warning" type="button" data-toggle="collapse" data-target="#collapsable-allergies" aria-expanded="false" aria-controls="collapsable-allergies">
-            Allergies
-        </button>
-        <div class="collapse" id="collapsable-allergies">
-            {% for a in allergies %}
-                <label>
-                    <input class="ml-2" type="checkbox" id="check-allergy_{{ a['id'] }}" name="allergies" value="{{ a['id'] }}" data-default="false">
-                    {{ a["name"] }}
-                </label>
+    {{ super() }}
+    <div class="form-group">
+        <label for="select-category">Category</label>
+        <select form="{{ form_id }}" class="form-control" id="select-category" name="category_id" data-default=0 required>
+            <option value=0 selected="selected" disabled>select category</option>
+            {% for c in categories %}
+                <option value={{ c["id"] }}>{{ c["name"] }}</option>
             {% endfor %}
-        </div>
-        <br>
-        <br>
-        <input type="submit" class="hidden" id="form-db_write-submit" hidden/>
-    </form>
+        </select>
+    </div>
+    <button class="btn btn-warning" type="button" data-toggle="collapse" data-target="#collapsable-allergies" aria-expanded="false" aria-controls="collapsable-allergies">
+        Allergies
+    </button>
+    <div class="collapse" id="collapsable-allergies">
+        {% for a in allergies %}
+            <label>
+                <input form="{{ form_id }}" class="ml-2" type="checkbox" id="check-allergy_{{ a['id'] }}" name="allergies" value="{{ a['id'] }}" data-default=false>
+                {{ a["name"] }}
+            </label>
+        {% endfor %}
+    </div>
 {% endblock %}

@@ -1,60 +1,123 @@
-const ING_BADGE_ID_PREFIX = "ing_badge_";
+const ING_BADGE_ID_PREFIX = "contents-added-badge_";
 const ING_BADGE_CSS_CLASS = "badge badge-primary ml-1 mr-1";
 
-// Array of Content objects for new recipe
-let contents= [];
+// Array of Content objects for recipe in editing
+var form_contents = ["meh"];
 
-$(document).ready(function(){
-    // Adds new content to contents array for the new recipe form
-    $("#contents_add").click(function(){
-        var ingredient_id = $("#ingredient_select").val()
-        var amount = $("#amount").val()
-        var units = $("#units").val()
+// Extend function to set insturctions and contents to default
+let old_form_set_new = form_set_new;
+form_set_new = function(form_id){
+    old_form_set_new(form_id);
 
-        // Validate ingredient id and amount
-        if ( !ingredient_id ) {
-            $("#ingredient_select").focus();
+    var form_elements = $("[form="+ form_id + "]");
+    set_default(form_elements.filter("[name=instructions]"));
+
+    contents = form_elements.filter("[name=instructions]").val();
+
+    ingredient_ids = form_contents.map(x => x["ingredient_id"])
+
+    for ( i of ingredient_ids ) {
+        content_remove(form_contents, i);
+    }
+};
+
+// Extend function to set insturctions and contents based on fetched object
+let old_form_set_edit = form_set_edit;
+form_set_edit = function(form_id, db_id, data=null) {
+    old_form_set_edit(form_id, db_id, data);
+
+    if ( data ) {
+        var instructions =  $("[form="+ form_id + "]").filter("[name=instructions]");
+        instructions.val(data["instructions"]);
+
+        // Set contents
+        for ( c of data["contents"]) {
+            var ingredient = {
+                db_id: parseInt(c["ingredient"]["db_id"]),
+                name: c["ingredient"]["name"],
+            };
+            var amount = parseInt(c["amount"]);
+            var units = c["units"];
+
+            content_add(form_contents, ingredient, amount, units);
+        }
+    }
+};
+
+
+// Add new content to the list and reflect that in the interface
+function content_add(list, ingredient, amount=0.0, units=null) {
+    // Add ingredient badge to the ingredients list div
+    $("#contents-added").append("<span class=\""+ ING_BADGE_CSS_CLASS + "\" id=\"" + ING_BADGE_ID_PREFIX + ingredient["db_id"] + "\">"
+                                + ingredient["name"]
+                                + ( amount ? ": " + amount : "" )
+                                + ( units ? " " + units : "" )
+                                + "</span>"
+    );
+
+    // Add content to the contents list
+    content = {
+        ingredient_id: parseInt(ingredient["db_id"]),
+        amount       : parseFloat(amount),
+        units        : units ? units : null
+    };
+    list.push(content);
+}
+
+// Remove content specified by ingredient db_id from the list and reflect that in the interface
+function content_remove(list, ingredient_id) {
+    var index = -1;
+    for ( var i = 0; i < list.length; i++ ) {
+        if ( list[i]["ingredient_id"] == ingredient_id) {
+            index = i;
+        }
+    }
+    if ( index > -1 ) {
+        list.splice(index, 1);
+        $("#" + ING_BADGE_ID_PREFIX + ingredient_id).remove();
+    }
+}
+
+$(document).ready(function() {
+    // Adds new content to contents array for the db_write form
+    $("#contents-add").click(function() {
+        var ingredient = {
+            db_id: $("#contents-select-ingredient").val(),
+            name : $("#contents-select-ingredient option:selected").text(),
+        };
+        var amount = parseFloat($("#contents-amount").val());
+        var units = $("#contents-units").val();
+
+
+
+        // Validate ingredient db_id and amount
+        if ( !ingredient["db_id"] ) {
+            $("#contents-select-ingredient").focus();
             return;
         }
-        if ( !(parseInt(amount) >=0) ) {
-            $("#amount").focus();
+        if ( !(parseFloat(amount) >=0) ) {
+            $("#contents-amount").focus();
             return;
         }
 
-        // remove previously added identical ingredients
-        var index = -1;
-        for ( var i = 0; i < contents.length; i++ ) {
-            if ( contents[i]["ingredient_id"] == ingredient_id) {
-                index = i;
-            }
-        }
-        if ( index > -1 ) {
-            contents.splice(index, 1);
-            $("#" + ING_BADGE_ID_PREFIX + ingredient_id).remove();
-        }
-
-        // Add ingredient badge to the ingredients list div
-        var ingredient_name = $("#ingredient_select option:selected").text()
-        $("#added_contents").append("<span class=\""+ ING_BADGE_CSS_CLASS + "\" id=\"" + ING_BADGE_ID_PREFIX + ingredient_id + "\">"
-                                  + ingredient_name + ": " + amount + " " + units
-                                  + "</span>"
-        );
-
-        // Add content to the contents list
-        contents.push({
-            ingredient_id: ingredient_id,
-            amount: amount,
-            units: units
-        });
+        // Remove old content with the same ingredient if any and add the new one
+        content_remove(form_contents, ingredient["db_id"]);
+        content_add(form_contents, ingredient, amount, units);
 
         // Reset input field values
-        $("#ingredient_select").val(0);
-        $("#ingredient_select").focus()
-        $("#amount").val("");
-        $("#units").val("");
+        $("#contents-select-ingredient").val(0);
+        $("#contents-select-ingredient").focus();
+        $("#contents-amount").val("");
+        $("#contents-units").val("");
+
     });
 
-    $("#recipe_new").submit(function() {
-        $("#contents").val(JSON.stringify(contents))
+    // Intercept form submit to attach contents data
+    $("#form-db_write").submit(function(e) {
+        // e.preventDefault(); // DEBUG
+        var form_id = $(this).attr("id");
+
+        $("[form="+ form_id + "]").filter("[name=contents]").val(JSON.stringify(form_contents));
+        // console.log($(this).serialize()); // DEBUG
     });
 });

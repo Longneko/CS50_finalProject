@@ -249,7 +249,7 @@ def admin_recipes():
 
     recipe = Recipe(name, db_id, contents, instructions)
     try:
-        result = db.write(recipe)
+        result = db.write(recipe, overwrite=True)
     except:
         result = False
 

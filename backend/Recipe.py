@@ -30,7 +30,7 @@ class Recipe(DBEntry):
                 ).format(self.name, self.db_id, contents, self.instructions, end="")
 
     def toJSONifiable(self):
-        dct = dict(self.__dict__)
+        dct = super().toJSONifiable()
         contents_list = [item._asdict() for item in self.contents]
         dct["contents"] = contents_list
         return dct

@@ -40,6 +40,7 @@ main img {
 
 td {
     max-width: 600px;
+    text-align: left;
 }
 
 .td-list {

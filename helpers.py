@@ -50,8 +50,8 @@ def is_iterable(x):
 
 # filter for Jinja
 def is_content(x):
-    content_keys = ["ingredient", "amount", "units"]
+    content_keys = {"ingredient", "amount", "units"}
     try:
-        return all(key in x.keys() for key in content_keys)
+        return content_keys <= set(x.keys())
     except:
         return False

@@ -2,8 +2,8 @@
 
 {% macro var_to_td(var) -%}
     {% if var|is_iterable and not var|is_string %}
-        <td class="td-list">
-            <ul >
+        <td>
+            <ul class="td-list">
                 {% for item in var %}
                     <li>{{ item }}</li>
                 {% endfor %}
@@ -57,15 +57,16 @@
                             </button>
                         </div>
                         <div class="modal-body">
-                            {% block form %}
-                                <form id="form-db_write" action="/admin/{{ page }}" method="post">
+                            {% set form_id="form-db_write" %}
+                            {% block form scoped %}
+                                <form id="{{ form_id }}" action="/admin/{{ page }}" method="post">
                                     <div class="form-group">
-                                        <input type="number" id="form-db_id" name="db_id" value="" hidden>
-                                        <label for="name">Name</label>
-                                        <input type="text" class="form-control" id="form-name" name="name" required>
+                                        <input form="{{ form_id }}" type="number" id="form-db_id" name="db_id" value="" hidden>
+                                        <label for="form-name">Name</label>
+                                        <input form="{{ form_id }}" type="text" class="form-control" id="form-name" name="name" required>
                                         <small class="form-text text-muted">Names must be unique.</small>
                                     </div>
-                                    <input type="submit" class="hidden" id="form-db_write-submit" hidden/>
+                                    <input form="{{ form_id }}" type="submit" class="hidden" id="form-db_write-submit" hidden/>
                                 </form>
                             {% endblock %}
                         </div>
