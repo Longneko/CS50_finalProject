@@ -1,10 +1,10 @@
-Work in progress (name is TBD)
+# Work in progress (name is TBD)
 
 This is an entry for the Harward's CS50 (on edX). It is a web-app that allows users to get a meal suggestions based on their preferences. Suggestions include recipes for said meals. Basically, this is a simplified set of ideas completely ripped off of numerous such apps on the marked, namely Mealime (Thank you guys for being you!) :D.
 
 Aside from the end-user intended experience, this app also provides (or rather will eventually) an admin UI that allows to manage the DB via a web browser e.g. create meals and their constituents.
 
-# Available features:
+## Available features:
 * DB interface (sqlite3):
   - Initializing new DB with set schema
   - Editing exisiting DB (adding new objects and editing existing ones)
@@ -15,7 +15,7 @@ Aside from the end-user intended experience, this app also provides (or rather w
   - Admin UI: managing meal constituents (allergies, ingredients and their categories, recipes)
   - End-user UI: registration, login, account settings editing (allergies only atm)
 
-# Roadmap:
+## Roadmap:
 (not necessarily in that order)
 * DB interface:
   - Deleting objects (and resolving dependencies)
@@ -27,7 +27,7 @@ Aside from the end-user intended experience, this app also provides (or rather w
   - End-user UI: displaying and managing user's meal plans
   - CSS and layout fit for human beings
 
-# Requirements:
+## Requirements:
 - Python 3.6
 - Jinja 2.1
 - HTML5
