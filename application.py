@@ -13,15 +13,13 @@ from backend.Ingredient import Ingredient
 from backend.User import User
 from backend.DBHandler import DBHandler
 from backend.DBEntry import FoodEncoder, Allergy, IngredientCategory
-from helpers import apology, login_required, is_string, is_iterable, is_content
+from helpers import apology, login_required, is_content
 
 # Configure application
 app = Flask(__name__)
 
 # Enable some  type testing and zip() in Jinja tempaltes
 app.jinja_env.filters['zip'] = zip
-app.jinja_env.filters['is_string'] = is_string
-app.jinja_env.filters['is_iterable'] = is_iterable
 app.jinja_env.filters['is_content'] = is_content
 
 # Ensure templates are auto-reloaded
@@ -60,12 +58,20 @@ def index():
     return render_template("index.html", **kwargs)
 
 
+# TESTING ONLY. TO BE REMOVED!!!
+@app.route("/test_json")
+@login_required
+def test_json():
+    """Test fetching objects in JSON"""
+
+    return render_template("test_json.html")
+
+
 @app.route("/admin")
 @login_required
 def admin():
     """Show admin main page"""
-
-    return render_template("admin.html", rows=False)
+    return render_template("admin.html")
 
 
 @app.route("/admin/allergies", methods=["GET", "POST"])
@@ -80,6 +86,7 @@ def admin_allergies():
         return render_template("allergies.html", rows=rows)
 
     # User reached route via POST (as by submitting a form via POST)
+    # Fetch attributes for the allergy category from the form
     name = request.form.get("name")
     try:
         db_id = int(request.form.get("db_id"))
@@ -88,8 +95,8 @@ def admin_allergies():
     except:
         db_id = None
 
+    # Construct the new IngredientCategory object and commit changes to DB
     allergy = Allergy(name, db_id)
-
     try:
         result = db.write(allergy, overwrite=True)
     except:
@@ -115,6 +122,7 @@ def admin_ingredient_categories():
         return render_template("ingredient_categories.html", rows=rows)
 
     # User reached route via POST (as by submitting a form via POST)
+    # Fetch attributes for the ingredient category from the form
     name = request.form.get("name")
     try:
         db_id = int(request.form.get("db_id"))
@@ -123,6 +131,7 @@ def admin_ingredient_categories():
     except:
         db_id = None
 
+    # Construct the new IngredientCategory object and commit changes to DB
     ing_category = IngredientCategory(name, db_id)
     try:
         result = db.write(ing_category, overwrite=True)
@@ -146,12 +155,13 @@ def admin_ingredients():
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
         rows = db.get_summary("ingredients", name_sort=True)
-        categories = db.get_rows("ingredient_categories", "name ASC")
-        allergies = db.get_rows("allergies", "name ASC")
+        categories = db.get_rows("ingredient_categories", order_by="name ASC")
+        allergies = db.get_rows("allergies", order_by="name ASC")
 
         return render_template("ingredients.html", rows=rows, categories=categories, allergies=allergies)
 
     # User reached route via POST (as by submitting a form via POST)
+    # Fetch attributes for the ingredient from the form
     name = request.form.get("name")
     try:
         db_id = int(request.form.get("db_id"))
@@ -167,6 +177,7 @@ def admin_ingredients():
     for a_id in allergy_ids:
         allergies.add(db.fetch_allergy(a_id))
 
+    # Construct the new Ingredient object and commit changes to DB
     ingredient = Ingredient(name, category, db_id, allergies)
     try:
         result = db.write(ingredient, overwrite=True)
@@ -217,6 +228,7 @@ def admin_recipes():
         return render_template("recipes.html", rows=rows, ingredients=ingredients, recipe_contents=recipe_contents)
 
     # User reached route via POST (as by submitting a form via POST)
+    # Fetch attributes for the recipe from the form
     name = request.form.get("name")
     try:
         db_id = int(request.form.get("db_id"))
@@ -247,6 +259,7 @@ def admin_recipes():
 
         contents.add(Content(ingredient, amount, units))
 
+    # Construct the new Recipe object and commit changes to DB
     recipe = Recipe(name, db_id, contents, instructions)
     try:
         result = db.write(recipe, overwrite=True)
@@ -259,6 +272,41 @@ def admin_recipes():
         flash("Something went wrong :(", category="danger")
 
     return redirect("admin/recipes")
+
+
+@app.route("/account", methods=["GET", "POST"])
+@login_required
+def account():
+    """Show account settings for GET.
+    Write new user settings to  DB for POST.
+    """
+    # User reached route via GET (as by clicking a link or via redirect)
+    if request.method == "GET":
+        allergies = db.get_rows("allergies", order_by="name ASC")
+        rows = db.get_rows("user_allergies", user_id=session.get("user_id"))
+        user_allergies = {x["allergy_id"] for x in rows}
+
+        return render_template("account.html", allergies=allergies, user_allergies=user_allergies)
+
+    # User reached route via POST (as by submitting a form via POST)
+    # Fetch User object from DB and replace its allergies set
+    user = db.fetch_user(session.get("user_id"))
+    allergies = request.form.getlist("allergies")
+    user.allergies = set(allergies)
+
+    # Commit the user changes to DB
+    try:
+        result = db.write(user, overwrite=True)
+    except:
+        result = False
+
+    if result:
+        flash("Changes saved successfully!")
+    else:
+        flash("Something went wrong :(", category="danger")
+
+    return redirect("/account")
+
 
 
 @app.route("/login", methods=["GET", "POST"])
