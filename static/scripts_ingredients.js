@@ -26,7 +26,7 @@ form_set_edit = function(form_id, db_id, data=null) {
 
         // Set allergies
         for ( a of data["allergies"]) {
-            var a_id = "#check-allergy_" + a["db_id"];
+            var a_id = "#allergies-allergy_" + a["db_id"];
             form_elements.filter(a_id).prop("checked", true);
         }
     }

@@ -23,13 +23,13 @@
             {% endfor %}
         </select>
     </div>
-    <button class="btn btn-warning" type="button" data-toggle="collapse" data-target="#collapsable-allergies" aria-expanded="false" aria-controls="collapsable-allergies">
+    <button class="btn btn-warning" type="button" data-toggle="collapse" data-target="#allergies" aria-expanded="false" aria-controls="allergies">
         Allergies
     </button>
-    <div class="collapse" id="collapsable-allergies">
+    <div class="collapse border" id="allergies">
         {% for a in allergies %}
             <label>
-                <input form="{{ form_id }}" class="ml-2" type="checkbox" id="check-allergy_{{ a['id'] }}" name="allergies" value="{{ a['id'] }}" data-default=false>
+                <input form="{{ form_id }}" class="ml-2" type="checkbox" id="allergies-allergy_{{ a['id'] }}" name="allergies" value="{{ a['id'] }}" data-default=false>
                 {{ a["name"] }}
             </label>
         {% endfor %}

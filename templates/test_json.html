@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Index
+{% endblock %}
+
+{% block main %}
+    Hello :)
+    <br>
+    Feel free to test our JSON:
+
+<form action="/json" method="post">
+    obj_type:<br>
+    <input type="text" name="obj_type">
+    <br>
+    id:<br>
+    <input type="text" name="db_id">
+    <br>
+    <input type="submit" value="Send">
+</form>
+
+{% endblock %}
+

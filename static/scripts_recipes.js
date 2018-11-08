@@ -112,6 +112,13 @@ $(document).ready(function() {
 
     });
 
+    // Trigger 'Add' button press Enter key for content inputs
+    $("[id|=contents]").filter("input").keyup(function(e) {
+        if ( e.which == 13 ) {
+            $("#contents-add").click();
+        }
+    });
+
     // Intercept form submit to attach contents data
     $("#form-db_write").submit(function(e) {
         // e.preventDefault(); // DEBUG

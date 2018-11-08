@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    {% set page = request.path[request.path.rfind("/")+1:] %}
+    {% set form_id="form-db_write" %}
+    <form id="{{ form_id }}" action="/{{ page }}" method="post">
+        <label for="allergies">Allergies</label>
+        <div class="border" id="allergies">
+            {% for a in allergies %}
+                <label>
+                    <input form="{{ form_id }}" class="ml-2" type="checkbox" id="allergies-allergy_{{ a["id"] }}" name="allergies" value="{{ a['id'] }}" data-default=false {{ "checked" if a["id"] in user_allergies }}>
+                    {{ a["name"] }}
+                </label>
+            {% endfor %}
+        </div>
+        <input type="submit" class="btn btn-primary" value="Save">
+    </form>
+{% endblock %}

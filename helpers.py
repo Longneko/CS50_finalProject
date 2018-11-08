@@ -36,17 +36,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# filter for Jinja
-def is_string(x):
-    return isinstance(x, str)
-
-# filter for Jinja
-def is_iterable(x):
-    try:
-        iter(x)
-        return True
-    except:
-        return False
 
 # filter for Jinja
 def is_content(x):

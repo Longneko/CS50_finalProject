@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% macro var_to_td(var) -%}
-    {% if var|is_iterable and not var|is_string %}
+    {% if var is iterable and not var is string %}
         <td>
             <ul class="td-list">
                 {% for item in var %}
