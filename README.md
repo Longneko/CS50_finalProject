@@ -22,6 +22,7 @@ Aside from the end-user intended experience, this app also provides (or rather w
   - generating meal plans based on user preferences (allergies)
   - storing users' active meal plans
 * Web application:
+  - Meal images
   - Admin UI: managing user admin access
   - End-user UI: displaying and managing user's meal plans
   - CSS and layout fit for human beings
