@@ -25,3 +25,9 @@ Aside from the end-user intended experience, this app also provides (or rather w
   - Admin UI: managing user admin access
   - End-user UI: displaying and managing user's meal plans
   - CSS and layout fit for human beings
+
+# Requirements:
+- Python 3.6
+- Jinja 2.1
+- HTML5
+- Web UI also uses Bootstrap 4.1 and Jquery 3.1.1 imported online.
