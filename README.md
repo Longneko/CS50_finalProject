@@ -15,8 +15,8 @@ Aside from the end-user intended experience, this app also provides (or rather w
   - Admin UI: managing meal constituents (allergies, ingredients and their categories, recipes)
   - End-user UI: registration, login, account settings editing (allergies only atm)
 
-# Roadmap
-(not necessarily in that order):
+# Roadmap:
+(not necessarily in that order)
 * DB interface:
   - Deleting objects (and resolving dependencies)
   - generating meal plans based on user preferences (allergies)
