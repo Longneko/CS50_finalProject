@@ -24,3 +24,4 @@ Aside from the end-user intended experience, this app also provides (or rather w
 * Web application:
   - Admin UI: managing user admin access
   - End-user UI: displaying and managing user's meal plans
+  - CSS and layout fit for human beings
