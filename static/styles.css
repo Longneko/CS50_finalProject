@@ -60,3 +60,7 @@ td {
     color: blue;
     text-decoration: underline;
 }
+
+.psedo-buottn {
+    cursor: pointer;
+}

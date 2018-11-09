@@ -1,5 +1,6 @@
 const ING_BADGE_ID_PREFIX = "contents-added-badge_";
 const ING_BADGE_CSS_CLASS = "badge badge-primary ml-1 mr-1";
+const BADGE_REMOVE_CHAR = "&#x274E;";
 
 // Array of Content objects for recipe in editing
 var form_contents = ["meh"];
@@ -52,8 +53,15 @@ function content_add(list, ingredient, amount=0.0, units=null) {
                                 + ingredient["name"]
                                 + ( amount ? ": " + amount : "" )
                                 + ( units ? " " + units : "" )
+                                + "<span class=\"psedo-buottn\" id=\"contents-remove_" + ingredient["db_id"] + "\" data-ingredient_id=" + ingredient["db_id"] + " aria-label=\"remove\"> " + BADGE_REMOVE_CHAR + "</span>"
                                 + "</span>"
     );
+
+    // Binding the remove button function for the new content badge
+    $("#contents-remove_" + ingredient["db_id"]).click(function() {
+        var ingredient_id = parseInt($(this).data("ingredient_id"));
+        content_remove(form_contents, ingredient_id);
+    });
 
     // Add content to the contents list
     content = {
