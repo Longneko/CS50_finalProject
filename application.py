@@ -295,10 +295,10 @@ def account():
     user.allergies = set(allergies)
 
     # Commit the user changes to DB
-    try:
-        result = db.write(user, overwrite=True)
-    except:
-        result = False
+    # try:
+    result = db.write(user, overwrite=True)
+    # except:
+    #     result = False
 
     if result:
         flash("Changes saved successfully!")

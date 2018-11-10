@@ -5,6 +5,8 @@ from backend.DBEntry import DBEntry
 class Recipe(DBEntry):
     """A recipe of a dish.
 
+    :param name: Inherited from DBEntry.
+    :param db_id: Inherited from DBEntry.
     :param contents: A set of Content namedtuples - ingredients and their amounts
         that comprise the dish.
     :param instructions: A string, instructios on how to cook the dish.
@@ -13,21 +15,6 @@ class Recipe(DBEntry):
         super().__init__(name, db_id)
         self.contents = contents
         self.instructions = instructions
-
-    # <TODO> Contents representation to be reworked? Add allergies repr
-    def __str__(self):
-        contents = ""
-        for content in self.contents:
-            contents += "\n  {} - {}".format(content.ingredient.name, content.amount,)
-            if content.units:
-                contents += " " + content.units
-
-        return ("<Recipe {}\n"
-                " db_id: {}\n"
-                " Contents:"
-                " {}\n"
-                " Instructions: {}>"
-                ).format(self.name, self.db_id, contents, self.instructions, end="")
 
     def toJSONifiable(self):
         dct = super().toJSONifiable()

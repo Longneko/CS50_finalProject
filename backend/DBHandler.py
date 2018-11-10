@@ -3,7 +3,7 @@ import sqlite3
 from backend.DBEntry import IngredientCategory, Allergy
 from backend.Ingredient import Ingredient
 from backend.Recipe import Recipe, Content
-from backend.User import User
+from backend.User import User, IdSet
 
 DEFAULT_DB_PATH = "backend/food.db"
 
@@ -43,8 +43,8 @@ class DBHandler(object):
                 );
 
                 CREATE TABLE allergens(
-                  allergy_id INTEGER NOT NULL,
                   ingredient_id INTEGER NOT NULL,
+                  allergy_id INTEGER NOT NULL,
                   PRIMARY KEY (allergy_id, ingredient_id),
                   FOREIGN KEY (allergy_id) REFERENCES allergies(id),
                   FOREIGN KEY (ingredient_id) REFERENCES ingredients(id)
@@ -69,15 +69,24 @@ class DBHandler(object):
                 CREATE TABLE users(
                   id INTEGER PRIMARY KEY,
                   name TEXT NOT NULL UNIQUE,
-                  password_hash TEXT NOT NULL
+                  password_hash TEXT NOT NULL,
+                  is_admin INTEGER NOT NULL DEFAULT 0
                 );
 
                 CREATE TABLE user_allergies(
-                  allergy_id INTEGER NOT NULL,
                   user_id INTEGER NOT NULL,
+                  allergy_id INTEGER NOT NULL,
                   PRIMARY KEY (allergy_id, user_id),
                   FOREIGN KEY (allergy_id) REFERENCES allergies(id),
                   FOREIGN KEY (user_id) REFERENCES users(id)
+                );
+
+                CREATE TABLE user_meals(
+                  user_id INTEGER,
+                  recipe_id INTEGER,
+                  PRIMARY KEY (user_id, recipe_id)
+                  FOREIGN KEY (user_id) REFERENCES users(id),
+                  FOREIGN KEY (recipe_id) REFERENCES recipes(id)
                 );
                 """)
 
@@ -105,7 +114,7 @@ class DBHandler(object):
                 "Recipe"            : lambda x: self.edit_recipe(x.db_id, x.name, x.contents,
                                                                  x.instructions),
                 "User"              : lambda x: self.edit_user(x.db_id, x.name, x.password_hash,
-                                                              x.allergies),
+                                                              x.allergies, x.meals, x.is_admin),
             }
             affected_rows = d[type(item).__name__](item)
 
@@ -119,7 +128,7 @@ class DBHandler(object):
                                                          x.allergies),
             "Recipe"            : lambda x: self.write_recipe(x.name, x.contents, x.instructions),
             "User"              : lambda x: self.write_user(x.name, x.password_hash,
-                                                         x.allergies),
+                                                         x.allergies, x.meals, x.is_admin),
         }
         item.db_id = d[type(item).__name__](item)
 
@@ -181,8 +190,8 @@ class DBHandler(object):
 
         allergens = set()
         for allergy in allergies:
-            allergens.add((allergy.db_id, ingredient_id))
-        self.c.executemany("INSERT INTO allergens (allergy_id, ingredient_id) VALUES (?, ?)",
+            allergens.add((ingredient_id, allergy.db_id))
+        self.c.executemany("INSERT INTO allergens (ingredient_id, allergy_id) VALUES (?, ?)",
                            allergens)
 
         self.db.commit()
@@ -246,26 +255,42 @@ class DBHandler(object):
 
         return 0
 
-    def ingredient_add_allergy(self, ingredient_id, allergy_id):
+    def ingredient_add_allergy(self, ingredient_id, allergy_id, commit=False):
         """Add new allergy to an ingredient in the DB. Return False if ingredient is not found.
-        Does not commit to DB.
+
+        :param ingredient_id: An integer. ID of the ingredient in the DB.
+        :param allergy_id: An integer. ID of the allergy in the DB.
+        :param commit: A Boolean. Method will only call DB's commit() if True. Should be avoided
+            if this method is called by methods with multiple transactions (e.g. edit_ingredient)
+            to avoid redundant commits or storing the object in an incomplete state.
         """
         if not self.exists("ingredients", db_id=ingredient_id):
             return False
 
-        t = (allergy_id, ingredient_id)
-        self.c.execute("INSERT INTO allergens (allergy_id, ingredient_id) VALUES (?, ?)", t)
+        t = (ingredient_id, allergy_id)
+        self.c.execute("INSERT INTO allergens (ingredient_id, allergy_id) VALUES (?, ?)", t)
+
+        if commit:
+            self.db.commit()
 
         return True
 
-    def ingredient_remove_allergy(self, ingredient_id, allergy_id):
+    def ingredient_remove_allergy(self, ingredient_id, allergy_id, commit=False):
         """Remove an allergy from an ingredient in the DB. Return number of affected rows.
-        Does not commit to DB.
+
+        :param ingredient_id: An integer. ID of the ingredient in the DB.
+        :param allergy_id: An integer. ID of the allergy in the DB.
+        :param commit: A Boolean. Method will only call DB's commit() if True. Should be avoided
+            if this method is called by methods with multiple transactions (e.g. edit_ingredient)
+            to avoid redundant commits or storing the object in an incomplete state.
         """
 
-        needle = (allergy_id, ingredient_id)
-        self.c.execute("DELETE FROM allergens WHERE allergy_id = ? AND ingredient_id = ?", needle)
+        needle = (ingredient_id, allergy_id)
+        self.c.execute("DELETE FROM allergens WHERE ingredient_id = ? AND allergy_id = ?", needle)
         rows_affected = self.c.rowcount
+
+        if commit and rows_affected:
+            self.db.commit()
 
         return rows_affected
 
@@ -347,9 +372,17 @@ class DBHandler(object):
 
         return 0
 
-    def recipe_add_content(self, recipe_id, ingredient_id, amount, units=None):
+    def recipe_add_content(self, recipe_id, ingredient_id, amount, units=None, commit=False):
         """Add new content to a recipe in the DB. Return False if recipe is not found.
-        Does not commit to DB.
+
+        :param recipe_id: An integer. ID of the recipe in the DB.
+        :param ingredient_id: An integer. ID of the ingredient in the DB.
+        :param amount: An integer. Amount of the ingredient in the DB.
+        :param units: An string. Represents units of measurement used for amount. Use None for
+            quantifiable ingredients.
+        :param commit: A Boolean. Method will only call DB's commit() if True. Should be avoided
+            if this method is called by methods with multiple transactions (e.g. edit_recipe)
+            to avoid redundant commits or storing the object in an incomplete state.
         """
         if not self.exists("recipes", db_id=recipe_id):
             return False
@@ -358,54 +391,84 @@ class DBHandler(object):
         self.c.execute("INSERT INTO recipe_contents (recipe_id, ingredient_id, amount, units) "
                        "VALUES (?, ?, ?, ?)", t)
 
+        if commit:
+            self.db.commit()
+
         return True
 
-    def recipe_remove_content(self, recipe_id, ingredient_id):
+    def recipe_remove_content(self, recipe_id, ingredient_id, commit=False):
         """Remove a content from a recipe in the DB. Return number of affected rows.
-        Does not commit to DB.
+
+        :param recipe_id: An integer. ID of the recipe in the DB.
+        :param ingredient_id: An integer. ID of the ingredient in the DB.
+        :param commit: A Boolean. Method will only call DB's commit() if True. Should be avoided
+            if this method is called by methods with multiple transactions (e.g. edit_recipe)
+            to avoid redundant commits or storing the object in an incomplete state.
         """
         needle = (recipe_id, ingredient_id)
         self.c.execute("DELETE FROM recipe_contents WHERE recipe_id = ? AND ingredient_id = ?",
                        needle)
         rows_affected = self.c.rowcount
 
+        if commit and rows_affected:
+            self.db.commit()
+
         return rows_affected
 
-    def recipe_edit_content(self, recipe_id, ingredient_id, amount, units=None):
+    def recipe_edit_content(self, recipe_id, ingredient_id, amount, units=None, commit=None):
         """Edit a content in a recipe in the DB. Return False if recipe is not found.
-        Does not commit to DB.
+
+        :param recipe_id: An integer. ID of the recipe in the DB.
+        :param ingredient_id: An integer. ID of the ingredient in the DB.
+        :param amount: An integer. Amount of the ingredient in the DB.
+        :param units: An string. Represents units of measurement used for amount. Use None for
+            quantifiable ingredients.
+        :param commit: A Boolean. Method will only call DB's commit() if True. Should be avoided
+            if this method is called by methods with multiple transactions (e.g. edit_recipe)
+            to avoid redundant commits or storing the object in an incomplete state.
         """
         t = (amount, units, recipe_id, ingredient_id)
         self.c.execute("UPDATE recipe_contents SET amount = ?, units = ? "
                        "WHERE recipe_id = ? AND ingredient_id = ?", t)
         rows_affected = self.c.rowcount
 
+        if commit and rows_affected:
+            self.db.commit()
+
         return rows_affected
 
-    def write_user(self, name, password_hash, allergies=set()):
+    def write_user(self, name, password_hash, allergies=set(), meals=IdSet(), is_admin=False):
         """Write a new user to the DB. Return id of the new DB entry"""
-        user = (name, password_hash)
-        self.c.execute("INSERT INTO users (name, password_hash) VALUES (?, ?)", user)
+        user = (name, password_hash, is_admin)
+        self.c.execute("INSERT INTO users (name, password_hash, is_admin) VALUES (?, ?, ?)", user)
 
         self.c.execute("SELECT id FROM users WHERE name = ?", (name,))
         user_id = self.c.fetchone()["id"]
 
         user_allergies = set()
         for allergy in allergies:
-            user_allergies.add((allergy.db_id, user_id))
-        self.c.executemany("INSERT INTO user_allergies (allergy_id, user_id) VALUES (?, ?)",
+            user_allergies.add((user_id, allergy.db_id))
+        self.c.executemany("INSERT INTO user_allergies (user_id, allergy_id) VALUES (?, ?)",
                            user_allergies)
+
+        user_meals = set()
+        for recipe_id in meals:
+            user_meals.add((user_id, recipe_id))
+        self.c.executemany("INSERT INTO user_meals (user_id, recipe_id) VALUES (?, ?)",
+                           user_meals)
 
         self.db.commit()
 
         return user_id
 
-    def edit_user(self, db_id, new_name=None, new_password_hash=None, new_allergies=None):
+    def edit_user(self, db_id, new_name=None, new_password_hash=None, new_allergies=None, new_meals=None, new_is_admin=None):
         """Changes values of a user in the DB. Return number of rows affected.
 
+        :param db_id: An integer. ID of the user in the DB.
         :param new_name: A string. New name of the user.
         :param new_password_hash: A string. New password hash of the user.
         :param new_allergies: A set of Allergy objects or allergy db_id integers.
+        :param new_meals: A set of recipe db_id.
         Pass None to leave respective attributes without changes.
         """
         if not self.exists("users", db_id=db_id):
@@ -424,6 +487,11 @@ class DBHandler(object):
             self.c.execute("UPDATE users SET password_hash = ? WHERE id = ?", t)
             rows_affected += self.c.rowcount
 
+        if new_is_admin:
+            t = (new_is_admin, db_id)
+            self.c.execute("UPDATE users SET is_admin = ? WHERE id = ?", t)
+            rows_affected += self.c.rowcount
+
 
         if not new_allergies == None:
             # Constructing sets of old and new allergy db_id of the user
@@ -436,9 +504,9 @@ class DBHandler(object):
                 new_allergy_ids.add(new_allergy_id)
 
             needle = (db_id,)
-            old_allergies = self.c.execute("SELECT allergy_id FROM user_allergies WHERE "
+            rows = self.c.execute("SELECT allergy_id FROM user_allergies WHERE "
                                            "user_id = ?", needle).fetchall()
-            old_allergy_ids = {x["allergy_id"] for x in old_allergies}
+            old_allergy_ids = {x["allergy_id"] for x in rows}
 
             # Removing allergies missing in the new set and adding new ones missing in the old set
             for allergy_id in old_allergy_ids - new_allergy_ids:
@@ -447,32 +515,102 @@ class DBHandler(object):
                 if self.user_add_allergy(db_id, allergy_id):
                     rows_affected += 1
 
+
+        if not new_meals == None:
+            # Constructing a set of old recipe db_id of the user
+            needle = (db_id,)
+            rows = self.c.execute("SELECT recipe_id FROM user_meals WHERE "
+                                           "user_id = ?", needle).fetchall()
+            old_recipe_ids = {x["recipe_id"] for x in rows}
+
+            # Removing recipes missing in the new set and adding new ones missing in the old set
+            for recipe_id in old_recipe_ids - new_meals:
+                rows_affected += self.user_remove_meal(db_id, recipe_id)
+            for recipe_id in new_meals - old_recipe_ids:
+                if self.user_add_meal(db_id, recipe_id):
+                    rows_affected += 1
+
         if rows_affected:
             self.db.commit()
             return rows_affected
 
         return 0
 
-    def user_add_allergy(self, user_id, allergy_id):
+    def user_add_allergy(self, user_id, allergy_id, commit=False):
         """Add new allergy to a user in the DB. Return False if user is not found.
-        Does not commit to DB.
+
+        :param user_id: An integer. ID of the user in the DB.
+        :param allergy_id: An integer. ID of the allergy in the DB.
+        :param commit: A Boolean. Method will only call DB's commit() if True. Should be avoided
+            if this method is called by methods with multiple transactions (e.g. edit_user)
+            to avoid redundant commits or storing the object in an incomplete state.
         """
         if not self.exists("users", db_id=user_id):
             return False
 
-        t = (allergy_id, user_id)
-        self.c.execute("INSERT INTO user_allergies (allergy_id, user_id) VALUES (?, ?)", t)
+        t = (user_id, allergy_id)
+        self.c.execute("INSERT INTO user_allergies (user_id, allergy_id) VALUES (?, ?)", t)
+
+        if commit:
+            self.db.commit()
 
         return True
 
-    def user_remove_allergy(self, user_id, allergy_id):
+    def user_remove_allergy(self, user_id, allergy_id, commit=False):
         """Remove an allergy from a user in the DB. Return number of affected rows.
-        Does not commit to DB.
+
+        :param user_id: An integer. ID of the user in the DB.
+        :param allergy_id: An integer. ID of the allergy in the DB.
+        :param commit: A Boolean. Method will only call DB's commit() if True. Should be avoided
+            if this method is called by methods with multiple transactions (e.g. edit_user)
+            to avoid redundant commits or storing the object in an incomplete state.
         """
 
-        needle = (allergy_id, user_id)
-        self.c.execute("DELETE FROM user_allergies WHERE allergy_id = ? AND user_id = ?", needle)
+        needle = (user_id, allergy_id)
+        self.c.execute("DELETE FROM user_allergies WHERE user_id  = ? AND allergy_id = ?", needle)
         rows_affected = self.c.rowcount
+
+        if commit and rows_affected:
+            self.db.commit()
+
+        return rows_affected
+
+    def user_add_meal(self, user_id, recipe_id, commit=False):
+        """Add new meal to a user in the DB. Return False if user is not found.
+
+        :param user_id: An integer. ID of the user in the DB.
+        :param recipe_id: An integer. ID of the recipe in the DB.
+        :param commit: A boolean. Method will only call DB's commit() if True. Should be avoided
+            if this method is called by methods making multiple transactions (e.g. edit_user)
+            to avoid redundant commits or storing the object in an incomplete state.
+        """
+        if not self.exists("users", db_id=user_id):
+            return False
+
+        t = (user_id, recipe_id)
+        self.c.execute("INSERT INTO user_meals (user_id, recipe_id) VALUES (?, ?)", t)
+
+        if commit:
+            self.db.commit()
+
+        return True
+
+    def user_remove_meal(self, user_id, recipe_id, commit=False):
+        """Remove a meal from a user in the DB. Return number of affected rows.
+
+        :param user_id: An integer. ID of the user in the DB.
+        :param recipe_id: An integer. ID of the recipe in the DB.
+        :param commit: A Boolean. Method will only call DB's commit() if True. Should be avoided
+            if this method is called by methods with multiple transactions (e.g. edit_user)
+            to avoid redundant commits or storing the object in an incomplete state.
+        """
+
+        needle = (user_id, recipe_id)
+        self.c.execute("DELETE FROM user_meals WHERE user_id  = ? AND recipe_id = ?", needle)
+        rows_affected = self.c.rowcount
+
+        if commit and rows_affected:
+            self.db.commit()
 
         return rows_affected
 
