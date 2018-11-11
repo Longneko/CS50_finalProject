@@ -1,7 +1,8 @@
 import json
 import inspect
+from collections import UserDict
 
-from backend.DBHandler import DBHandler, to_db_obj_name
+import backend.DBHandler
 
 
 class DBEntry(object):
@@ -27,20 +28,26 @@ class DBEntry(object):
         self.id = id
 
     @classmethod
-    def get_db_attrs(cls, db, id):
-        """Search for entry by id. Return dictionary of values necesary for constructor.
-        Returns None if id is not found.
+    def get_db_attrs(cls, db, id=None, name=None):
+        """Search DB for entry by id or name (in that priority). Return dictionary of values
+        necesary for constructor. Returns None if entry is not found.
 
         Entry is searched in the table with name defined by the 'table_main' class attribue.
         DBEntry
         """
-        if not cls.exists_in_db(db, id):
+        if not cls.exists_in_db(db, id, name):
             return None
 
         table_main = to_db_obj_name(cls.table_main)
 
-        query = f'SELECT * FROM "{table_main}" WHERE id = ?'
-        needle = (id,)
+        if id:
+            needle = (id,)
+            query = f'SELECT * FROM "{table_main}" WHERE id = ?'
+        elif name:
+            needle = (name,)
+            query = f'SELECT * FROM "{table_main}" WHERE name = ?'
+        else:
+            raise ValueError("Must provide at least one of id and name")
         row = db.c.execute(query, needle).fetchone()
 
         db_data = {x: y for x, y in zip(row.keys(), row)}
@@ -48,20 +55,26 @@ class DBEntry(object):
         return db_data
 
     @classmethod
-    def from_db(cls, db, id):
-        """Search db for class object entry by id and return constructed object.
-        Returns None if id is not found.
+    def from_db(cls, db, id=None, name=None):
+        """Search DB for class object entry by id or name (in that priority) and return
+        constructed object. Returns None if id is not found.
         """
-        db_attrs = cls.get_db_attrs(db, id)
+        db_attrs = cls.get_db_attrs(db, id, name)
 
         if not db_attrs:
             return None
         return cls(db=db, **db_attrs)
 
     @classmethod
-    def exists_in_db(cls, db, id):
-        """Check if and entry of this object type with provided id exists in the specified db"""
-        if db.exists(cls.table_main, id=id):
+    def exists_in_db(cls, db, id=None, name=None):
+        """Check if and entry of this object type with provided id and/or name exists in the specified db"""
+        kwargs = {}
+        if id:
+            kwargs["id"] = id
+        if name:
+            kwargs["name"] = name
+
+        if db.exists(cls.table_main, **kwargs):
             return True
         return False
 
@@ -83,7 +96,7 @@ class DBEntry(object):
 
     @db.setter
     def db(self, value):
-        if value and not isinstance(value, DBHandler):
+        if value and not isinstance(value, backend.DBHandler.DBHandler):
             raise ValueError("db must be a DBHandler object")
         self.__db = value
 
@@ -112,44 +125,28 @@ class DBEntry(object):
         allergy = (self.name,)
 
         self.db.c.execute(f'INSERT INTO "{table_main}" (name) VALUES (?)', allergy)
-        new_row_id = (self.db.c.lastrowid,)
 
-        row = self.db.c.execute(f"SELECT id FROM {table_main} WHERE rowid = ?", new_row_id).fetchone()
+        new_row_id = (self.db.c.lastrowid,)
+        self.db.c.execute(f"SELECT id FROM {table_main} WHERE rowid = ?", new_row_id)
+        row = self.db.c.fetchone()
 
         return row["id"]
 
     def edit_in_db(self):
-        """Edit existing DB entry to match current object state. Return number of affected rows"""
+        """Edit existing DB entry to match current object state. Return number of affected rows."""
         table_main = to_db_obj_name(self.table_main)
         allergy = (self.name, self.id)
         self.db.c.execute(f'UPDATE "{table_main}" SET name = ? WHERE id = ?', allergy)
         return self.db.c.rowcount
 
     def toJSONifiable(self):
-        """Return a JSONifiable dictionary of the object's attributes. Omits name mangled (__attr) attributes
-        and trims underscore from private (_attr) attribute names.
+        """Return a JSONifiable dictionary of the object's attributes. Omits name mangled (__attr)
+        attributes and trims underscore from private (_attr) attribute names.
         """
         return {x.lstrip("_"): y
                 for x, y in vars(self).items()
                 if not is_mangled(x, self.__class__)
         }
-
-
-class Allergy(DBEntry):
-    """An allergy that an ingredient may cause and users may list to avoid meals with
-    such ingredients.
-
-    All methods and instance attributes are inherited from DBEntry.
-    """
-    table_main = "allergies"
-
-
-class IngredientCategory(DBEntry):
-    """Categorizes ingredients.
-
-    All methods and instance attributes are inherited from DBEntry.
-    """
-    table_main = "ingredient_categories"
 
 
 class FoodEncoder(json.JSONEncoder):
@@ -161,18 +158,19 @@ class FoodEncoder(json.JSONEncoder):
             return list(obj)
         try:
             return obj.toJSONifiable()
-        except:
+        except AttributeError:
             pass
         # Let the base class default method raise the TypeError
         return json.JSONEncoder.default(self, obj)
 
 
 def validate_id(id):
-    try:
-        if not id is None and id < 1:
+    if not id == None:
+        try:
+            if not isinstance(id, int) or id < 1:
+                return False
+        except TypeError:
             return False
-    except:
-        return False
     return True
 
 def validate_name(name):
@@ -186,3 +184,7 @@ def is_mangled(attr_name, classinfo):
         if attr_name.startswith("_" + c.__name__ + "__"):
             return True
     return False
+
+def to_db_obj_name(s):
+    """Aliases eponymous function in DBHandler"""
+    return backend.DBHandler.to_db_obj_name(s)
