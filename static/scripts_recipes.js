@@ -24,8 +24,8 @@ form_set_new = function(form_id){
 
 // Extend function to set insturctions and contents based on fetched object
 let old_form_set_edit = form_set_edit;
-form_set_edit = function(form_id, db_id, data=null) {
-    old_form_set_edit(form_id, db_id, data);
+form_set_edit = function(form_id, id, data=null) {
+    old_form_set_edit(form_id, id, data);
 
     if ( data ) {
         var instructions =  $("[form="+ form_id + "]").filter("[name=instructions]");
@@ -34,7 +34,7 @@ form_set_edit = function(form_id, db_id, data=null) {
         // Set contents
         for ( c of data["contents"]) {
             var ingredient = {
-                db_id: parseInt(c["ingredient"]["db_id"]),
+                id: parseInt(c["ingredient"]["id"]),
                 name: c["ingredient"]["name"],
             };
             var amount = parseInt(c["amount"]);
@@ -49,30 +49,30 @@ form_set_edit = function(form_id, db_id, data=null) {
 // Add new content to the list and reflect that in the interface
 function content_add(list, ingredient, amount=0.0, units=null) {
     // Add ingredient badge to the ingredients list div
-    $("#contents-added").append("<span class=\""+ ING_BADGE_CSS_CLASS + "\" id=\"" + ING_BADGE_ID_PREFIX + ingredient["db_id"] + "\">"
+    $("#contents-added").append("<span class=\""+ ING_BADGE_CSS_CLASS + "\" id=\"" + ING_BADGE_ID_PREFIX + ingredient["id"] + "\">"
                                 + ingredient["name"]
                                 + ( amount ? ": " + amount : "" )
                                 + ( units ? " " + units : "" )
-                                + "<span class=\"psedo-buottn\" id=\"contents-remove_" + ingredient["db_id"] + "\" data-ingredient_id=" + ingredient["db_id"] + " aria-label=\"remove\"> " + BADGE_REMOVE_CHAR + "</span>"
+                                + "<span class=\"psedo-buottn\" id=\"contents-remove_" + ingredient["id"] + "\" data-ingredient_id=" + ingredient["id"] + " aria-label=\"remove\"> " + BADGE_REMOVE_CHAR + "</span>"
                                 + "</span>"
     );
 
     // Binding the remove button function for the new content badge
-    $("#contents-remove_" + ingredient["db_id"]).click(function() {
+    $("#contents-remove_" + ingredient["id"]).click(function() {
         var ingredient_id = parseInt($(this).data("ingredient_id"));
         content_remove(form_contents, ingredient_id);
     });
 
     // Add content to the contents list
     content = {
-        ingredient_id: parseInt(ingredient["db_id"]),
+        ingredient_id: parseInt(ingredient["id"]),
         amount       : parseFloat(amount),
         units        : units ? units : null
     };
     list.push(content);
 }
 
-// Remove content specified by ingredient db_id from the list and reflect that in the interface
+// Remove content specified by ingredient id from the list and reflect that in the interface
 function content_remove(list, ingredient_id) {
     var index = -1;
     for ( var i = 0; i < list.length; i++ ) {
@@ -90,7 +90,7 @@ $(document).ready(function() {
     // Adds new content to contents array for the db_write form
     $("#contents-add").click(function() {
         var ingredient = {
-            db_id: $("#contents-select-ingredient").val(),
+            id: $("#contents-select-ingredient").val(),
             name : $("#contents-select-ingredient option:selected").text(),
         };
         var amount = parseFloat($("#contents-amount").val());
@@ -98,8 +98,8 @@ $(document).ready(function() {
 
 
 
-        // Validate ingredient db_id and amount
-        if ( !ingredient["db_id"] ) {
+        // Validate ingredient id and amount
+        if ( !ingredient["id"] ) {
             $("#contents-select-ingredient").focus();
             return;
         }
@@ -109,7 +109,7 @@ $(document).ready(function() {
         }
 
         // Remove old content with the same ingredient if any and add the new one
-        content_remove(form_contents, ingredient["db_id"]);
+        content_remove(form_contents, ingredient["id"]);
         content_add(form_contents, ingredient, amount, units);
 
         // Reset input field values

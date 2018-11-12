@@ -1,4 +1,3 @@
-# allergens to be renamed to ingredient_allergies
 from collections import namedtuple
 
 from backend.DBEntry import DBEntry, to_db_obj_name
@@ -19,16 +18,16 @@ class Recipe(DBEntry):
         :param db: Inherits from DBEntry.
         :param id: Inherits from DBEntry.
         """
-        super().__init__(name, db, id)
+        super().__init__(name=name, db=db, id=id)
         self.instructions = instructions
         self.contents = contents
 
     @classmethod
     def from_db(cls, db, id=None, name=None):
-        """Search db for recipe entry by id and return constructed object.
-        Returns None if id is not found.
+        """Search db for recipe entry by id or name (in that priority) and return constructed
+        object. Returns None if id is not found.
         """
-        recipe = super().from_db(db, id, name)
+        recipe = super().from_db(db=db, id=id, name=name)
 
         if not recipe:
             return None
@@ -52,7 +51,7 @@ class Recipe(DBEntry):
         return recipe
 
     def new_to_db(self):
-        """Write a new ingredient to the DB. Return id assigned by the DB."""
+        """Write a new recipe entry to the DB. Return id assigned by the DB."""
         table_main = to_db_obj_name(self.table_main)
 
         # Inserting values to the main table
@@ -157,35 +156,69 @@ class Recipe(DBEntry):
             'LEFT JOIN ingredients ON recipe_contents.ingredient_id = ingredients.id '
             'ORDER BY recipe_id ASC'
         )
-        it_summary = iter(summary)
-        row = next(it_summary)
-        for db_row in db.c.fetchall():
-            while not db_row["recipe_id"] == row["id"]:
-                # Ensure at least an empty 'cell' exists for this recipe before moving to next
+        db_rows = db.c.fetchall()
+        if db_rows:
+            it_summary = iter(summary)
+            s_row = next(it_summary)
+            for db_row in db_rows:
+                while not db_row["recipe_id"] == s_row["id"]:
+                    # Ensure at least an empty 'cell' exists for this recipe before moving to next
+                    try:
+                        s_row["contents"]
+                    except KeyError:
+                        s_row["contents"] = []
+                    s_row = next(it_summary)
+
+                content = {
+                    "ingredient": db_row["ingredient"],
+                    "amount"    : db_row["amount"],
+                    "units"     : db_row["units"],
+                }
                 try:
-                    row["contents"]
+                    s_row["contents"].append(content)
                 except KeyError:
-                    row["contents"] = []
-                row = next(it_summary)
+                    s_row["contents"] = [content]
 
-            content = {
-                "ingredient": db_row["ingredient"],
-                "amount"    : db_row["amount"],
-                "units"     : db_row["units"],
-            }
-            try:
-                row["contents"].append(content)
-            except KeyError:
-                row["contents"] = [content]
+            # Fill remaining rows with empty content lists
+            finished = False
+            while not finished:
+                try:
+                    s_row = next(it_summary)
+                    s_row["contents"] = []
+                except StopIteration:
+                    finished = True
 
-        # Fill remaining rows with empty content lists
-        finished = False
-        while not finished:
-            try:
-                row = next(it_summary)
-                row["contents"] = []
-            except StopIteration:
-                finished = True
+
+        # Get dependents
+        db.c.execute(
+            'SELECT recipe_id, COUNT(user_id) as dependents FROM user_meals '
+            'GROUP BY recipe_id '
+            'ORDER BY recipe_id ASC'
+        )
+        db_rows = db.c.fetchall()
+        if db_rows:
+            it_summary = iter(summary)
+            s_row = next(it_summary)
+            for db_row in db_rows:
+                while not db_row["recipe_id"] == s_row["id"]:
+                    # Set dependents = 0 for ingredients that don't exist in recipe_contents table
+                    try:
+                        s_row["dependents"]
+                    except KeyError:
+                        s_row["dependents"] = 0
+
+                    s_row = next(it_summary)
+
+                s_row["dependents"] = db_row["dependents"]
+
+            # Fill remaining rows with dependents = 0
+            finished = False
+            while not finished:
+                try:
+                    s_row = next(it_summary)
+                    s_row["dependents"] = 0
+                except StopIteration:
+                    finished = True
 
         if name_sort:
             summary.sort(key=lambda x: x["name"].lower())
@@ -230,4 +263,3 @@ class Content(ContentTuple):
 
     def toJSONifiable(self):
         return self._asdict()
-

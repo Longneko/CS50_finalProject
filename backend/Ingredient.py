@@ -1,4 +1,3 @@
-# allergens to be renamed to ingredient_allergies
 from collections import namedtuple
 
 from backend.DBEntry import DBEntry, to_db_obj_name
@@ -19,13 +18,13 @@ class Ingredient(DBEntry):
         :param db: Inherits from DBEntry.
         :param id: Inherits from DBEntry.
         """
-        super().__init__(name, db, id)
+        super().__init__(name=name, db=db, id=id)
         self.category = category
         self.allergies = allergies
 
     @classmethod
     def from_db(cls, db, id=None, name=None):
-        """Search db for ingredient entry by id and return constructed object.
+        """Search db for ingredient entry by id or name (in that priorty) and return constructed object.
         Returns None if id is not found.
         """
         db_attrs = cls.get_db_attrs(db, id, name)
@@ -41,11 +40,9 @@ class Ingredient(DBEntry):
 
         # Constructing allergies set
         needle = (id,)
-        db.c.execute('SELECT allergy_id as id FROM allergens WHERE ingredient_id = ?', needle)
+        db.c.execute('SELECT allergy_id as id FROM ingredient_allergies WHERE ingredient_id = ?', needle)
         rows = db.c.fetchall()
-        allergies = set()
-        for row in rows:
-            allergies.add(Allergy.from_db(db, row["id"]))
+        allergies = {Allergy.from_db(db, row["id"]) for row in rows}
 
         return cls(db=db, category=category, allergies=allergies, **db_attrs)
 
@@ -66,7 +63,7 @@ class Ingredient(DBEntry):
 
         # inserting allergies to the associative table
         allergies = {(id, a.id) for a in self.allergies}
-        self.db.c.executemany("INSERT INTO allergens (ingredient_id, allergy_id) VALUES (?, ?)",
+        self.db.c.executemany('INSERT INTO ingredient_allergies (ingredient_id, allergy_id) VALUES (?, ?)',
                           allergies)
 
         return id
@@ -88,19 +85,19 @@ class Ingredient(DBEntry):
         # Constructing sets of the ingredient's old and new allergies' ids
         new_allergy_ids = {a.id for a in self.allergies}
         needle = (self.id,)
-        old_allergies = self.db.c.execute('SELECT allergy_id as id FROM allergens WHERE '
-                                       'ingredient_id = ?', needle).fetchall()
+        old_allergies = self.db.c.execute('SELECT allergy_id as id FROM ingredient_allergies '
+                                          '  WHERE ingredient_id = ?', needle).fetchall()
         old_allergy_ids = {a["id"] for a in old_allergies}
 
         # Removing allergies missing in the new set
         to_remove = {(self.id, a_id) for a_id in old_allergy_ids - new_allergy_ids}
-        self.db.c.executemany('DELETE FROM allergens WHERE ingredient_id = ? AND allergy_id = ?',
+        self.db.c.executemany('DELETE FROM ingredient_allergies WHERE ingredient_id = ? AND allergy_id = ?',
                               to_remove)
         rows_affected += self.db.c.rowcount
 
         # Adding allergies missing in the old set
         to_add = {(self.id, a_id) for a_id in new_allergy_ids - old_allergy_ids}
-        self.db.c.executemany('INSERT INTO allergens (ingredient_id, allergy_id) VALUES (?, ?)',
+        self.db.c.executemany('INSERT INTO ingredient_allergies (ingredient_id, allergy_id) VALUES (?, ?)',
                               to_add)
         rows_affected += self.db.c.rowcount
 
@@ -135,35 +132,37 @@ class Ingredient(DBEntry):
 
         # Get allergy lists
         db.c.execute(
-            'SELECT allergens.ingredient_id, allergies.name as allergy_name '
-            'FROM allergens '
-            'LEFT JOIN allergies ON allergens.allergy_id = allergies.id '
-            'ORDER BY allergens.ingredient_id ASC'
+            'SELECT ingredient_allergies.ingredient_id, allergies.name as allergy_name '
+            'FROM ingredient_allergies '
+            'LEFT JOIN allergies ON ingredient_allergies.allergy_id = allergies.id '
+            'ORDER BY ingredient_allergies.ingredient_id ASC'
         )
-        it_summary = iter(summary)
-        row = next(it_summary)
-        for db_row in db.c.fetchall():
-            while not db_row["ingredient_id"] == row["id"]:
-                # Ensure at least an empty 'cell' exists for this ingredient before moving to next
+        db_rows = db.c.fetchall()
+        if db_rows:
+            it_summary = iter(summary)
+            s_row = next(it_summary)
+            for db_row in db_rows:
+                while not db_row["ingredient_id"] == s_row["id"]:
+                    # Ensure at least an empty 'cell' exists for this ingredient before moving to next
+                    try:
+                        s_row["allergies"]
+                    except KeyError:
+                        s_row["allergies"] = []
+                    s_row = next(it_summary)
+
                 try:
-                    row["allergies"]
+                    s_row["allergies"].append(db_row["allergy_name"])
                 except KeyError:
-                    row["allergies"] = []
-                row = next(it_summary)
+                    s_row["allergies"] = [db_row["allergy_name"]]
 
-            try:
-                row["allergies"].append(db_row["allergy_name"])
-            except KeyError:
-                row["allergies"] = [db_row["allergy_name"]]
-
-        # Fill remaining rows with empty allergy lists
-        finished = False
-        while not finished:
-            try:
-                row = next(it_summary)
-                row["allergies"] = []
-            except StopIteration:
-                finished = True
+            # Fill remaining rows with empty allergy lists
+            finished = False
+            while not finished:
+                try:
+                    s_row = next(it_summary)
+                    s_row["allergies"] = []
+                except StopIteration:
+                    finished = True
 
 
         # Get dependents
@@ -172,28 +171,30 @@ class Ingredient(DBEntry):
             'GROUP BY ingredient_id '
             'ORDER BY ingredient_id ASC'
         )
-        it_summary = iter(summary)
-        row = next(it_summary)
-        for db_row in db.c.fetchall():
-            while not db_row["ingredient_id"] == row["id"]:
-                # Set dependents = 0 for ingredients that don't exist in recipe_contents table
+        db_rows = db.c.fetchall()
+        if db_rows:
+            it_summary = iter(summary)
+            s_row = next(it_summary)
+            for db_row in db_rows:
+                while not db_row["ingredient_id"] == s_row["id"]:
+                    # Set dependents = 0 for ingredients that don't exist in recipe_contents table
+                    try:
+                        s_row["dependents"]
+                    except KeyError:
+                        s_row["dependents"] = 0
+
+                    s_row = next(it_summary)
+
+                s_row["dependents"] = db_row["dependents"]
+
+            # Fill remaining rows with dependents = 0
+            finished = False
+            while not finished:
                 try:
-                    row["dependents"]
-                except KeyError:
-                    row["dependents"] = 0
-
-                row = next(it_summary)
-
-            row["dependents"] = db_row["dependents"]
-
-        # Fill remaining rows with dependents = 0
-        finished = False
-        while not finished:
-            try:
-                row = next(it_summary)
-                row["dependents"] = 0
-            except StopIteration:
-                finished = True
+                    s_row = next(it_summary)
+                    s_row["dependents"] = 0
+                except StopIteration:
+                    finished = True
 
 
         if name_sort:

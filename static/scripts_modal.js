@@ -52,10 +52,10 @@ function set_default(element) {
 }
 
 // Get object from DB asynchronously and execute provided func on success
-function fetch_object(obj_type, db_id, success) {
+function fetch_object(obj_type, id, success) {
     var params = {
         "obj_type": obj_type,
-        "db_id": db_id,
+        "id": id,
     }
     var url = window.location.origin + "/json"
 
@@ -68,21 +68,21 @@ function fetch_object(obj_type, db_id, success) {
 function form_set_new(form_id) {
     var form_elements = $("[form="+ form_id + "]");
 
-    set_default(form_elements.filter("[name=db_id]"));
+    set_default(form_elements.filter("[name=id]"));
     set_default(form_elements.filter("[name=name]"));
 }
 
 // Sets form values to those of the object under editing
-function form_set_edit(form_id, db_id, data=null) {
+function form_set_edit(form_id, id, data=null) {
     if ( data ) {
         var form_elements = $("[form="+ form_id + "]");
 
-        form_elements.filter("[name=db_id]").val(data["db_id"]);
+        form_elements.filter("[name=id]").val(data["id"]);
         form_elements.filter("[name=name]").val(data["name"]);
     } else {
         form_set_new(form_id);
-        fetch_object(obj_type, db_id, function(obj) {
-            form_set_edit(form_id, db_id, obj);
+        fetch_object(obj_type, id, function(obj) {
+            form_set_edit(form_id, id, obj);
         });
     }
 }
@@ -101,8 +101,8 @@ $(document).ready(function() {
         var modal_id = $(this).data("target");
         var form_id = $(modal_id).find("form").attr("id")
 
-        var db_id = $(this).data("db_id");
-        form_set_edit(form_id, db_id);
+        var id = $(this).data("id");
+        form_set_edit(form_id, id);
     });
 
     // Focus on Name field when modal window is shown

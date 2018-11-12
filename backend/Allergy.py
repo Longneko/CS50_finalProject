@@ -18,11 +18,11 @@ class Allergy(DBEntry):
             object name ascending.
         """
         table_main = to_db_obj_name(cls.table_main)
-        # allergens to be renamed to ingredient_allergies
+        # ingredient_allergies to be renamed to ingredient_allergies
         db.c.execute(
             'SELECT id, name, (COUNT(ingredient_id) + COUNT(user_id)) as dependents '
             'FROM allergies '
-            'LEFT JOIN allergens ON allergies.id = allergens.allergy_id '
+            'LEFT JOIN ingredient_allergies ON allergies.id = ingredient_allergies.allergy_id '
             'LEFT JOIN user_allergies ON allergies.id = user_allergies.allergy_id '
             'GROUP BY allergies.id '
             'ORDER BY allergies.id ASC'

@@ -28,6 +28,30 @@ class DBEntry(object):
         self.id = id
 
     @classmethod
+    def from_db(cls, db, id=None, name=None):
+        """Search DB for class object entry by id or name (in that priority) and return
+        constructed object. Returns None if id is not found.
+        """
+        db_attrs = cls.get_db_attrs(db, id, name)
+
+        if not db_attrs:
+            return None
+        return cls(db=db, **db_attrs)
+
+    @classmethod
+    def exists_in_db(cls, db, id=None, name=None):
+        """Check if and entry of this object type with provided id and/or name exists in the specified db"""
+        kwargs = {}
+        if id:
+            kwargs["id"] = id
+        if name:
+            kwargs["name"] = name
+
+        if db.exists(cls.table_main, **kwargs):
+            return True
+        return False
+
+    @classmethod
     def get_db_attrs(cls, db, id=None, name=None):
         """Search DB for entry by id or name (in that priority). Return dictionary of values
         necesary for constructor. Returns None if entry is not found.
@@ -53,30 +77,6 @@ class DBEntry(object):
         db_data = {x: y for x, y in zip(row.keys(), row)}
 
         return db_data
-
-    @classmethod
-    def from_db(cls, db, id=None, name=None):
-        """Search DB for class object entry by id or name (in that priority) and return
-        constructed object. Returns None if id is not found.
-        """
-        db_attrs = cls.get_db_attrs(db, id, name)
-
-        if not db_attrs:
-            return None
-        return cls(db=db, **db_attrs)
-
-    @classmethod
-    def exists_in_db(cls, db, id=None, name=None):
-        """Check if and entry of this object type with provided id and/or name exists in the specified db"""
-        kwargs = {}
-        if id:
-            kwargs["id"] = id
-        if name:
-            kwargs["name"] = name
-
-        if db.exists(cls.table_main, **kwargs):
-            return True
-        return False
 
     @property
     def name(self):
@@ -114,10 +114,13 @@ class DBEntry(object):
     def write_to_db(self):
         if not self.id:
             self.id = self.new_to_db()
+            result = bool(self.id)
         else:
-            self.edit_in_db()
+            result = bool(self.edit_in_db())
 
         self.db.conn.commit()
+
+        return result
 
     def new_to_db(self):
         """Write a new entry to the DB. Return id assigned by the DB"""

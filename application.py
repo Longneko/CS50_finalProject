@@ -1,5 +1,6 @@
 import os
 import json
+from sqlite3 import Error as Sqlite_error
 
 from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
@@ -8,11 +9,13 @@ from werkzeug.exceptions import default_exceptions
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.routing import Map, Rule
 
-from backend.Recipe import Recipe, Content
+from backend.Allergy import Allergy
+from backend.IngredientCategory import IngredientCategory
 from backend.Ingredient import Ingredient
+from backend.Recipe import Recipe, Content
 from backend.User import User
 from backend.DBHandler import DBHandler
-from backend.DBEntry import FoodEncoder, Allergy, IngredientCategory
+from backend.DBEntry import FoodEncoder
 from helpers import apology, login_required, is_content
 
 # Configure application
@@ -82,24 +85,25 @@ def admin_allergies():
     """
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
-        rows = db.get_summary("allergies", name_sort=True)
+        rows = Allergy.get_summary(db, name_sort=True)
         return render_template("allergies.html", rows=rows)
 
     # User reached route via POST (as by submitting a form via POST)
     # Fetch attributes for the allergy category from the form
     name = request.form.get("name")
     try:
-        db_id = int(request.form.get("db_id"))
-        if not db_id:
-            db_id = None
-    except:
-        db_id = None
+        id = int(request.form.get("id"))
+        if not id:
+            id = None
+    except ValueError:
+        id = None
 
     # Construct the new IngredientCategory object and commit changes to DB
-    allergy = Allergy(name, db_id)
+    allergy = Allergy(name, db, id)
     try:
-        result = db.write(allergy, overwrite=True)
-    except:
+        result = allergy.write_to_db()
+    except Sqlite_error as e:
+        flash(str(e))
         result = False
 
     if result:
@@ -118,24 +122,25 @@ def admin_ingredient_categories():
     """
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
-        rows = db.get_summary("ingredient_categories", name_sort=True)
+        rows = IngredientCategory.get_summary(db, name_sort=True)
         return render_template("ingredient_categories.html", rows=rows)
 
     # User reached route via POST (as by submitting a form via POST)
     # Fetch attributes for the ingredient category from the form
     name = request.form.get("name")
     try:
-        db_id = int(request.form.get("db_id"))
-        if not db_id:
-            db_id = None
+        id = int(request.form.get("id"))
+        if not id:
+            id = None
     except:
-        db_id = None
+        id = None
 
     # Construct the new IngredientCategory object and commit changes to DB
-    ing_category = IngredientCategory(name, db_id)
+    ing_category = IngredientCategory(name, db, id)
     try:
-        result = db.write(ing_category, overwrite=True)
-    except:
+        result = ing_category.write_to_db()
+    except Sqlite_error as e:
+        flash(str(e))
         result = False
 
     if result:
@@ -154,7 +159,7 @@ def admin_ingredients():
     """
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
-        rows = db.get_summary("ingredients", name_sort=True)
+        rows = Ingredient.get_summary(db, name_sort=True)
         categories = db.get_rows("ingredient_categories", order_by="name ASC")
         allergies = db.get_rows("allergies", order_by="name ASC")
 
@@ -164,24 +169,23 @@ def admin_ingredients():
     # Fetch attributes for the ingredient from the form
     name = request.form.get("name")
     try:
-        db_id = int(request.form.get("db_id"))
-        if not db_id:
-            db_id = None
+        id = int(request.form.get("id"))
+        if not id:
+            id = None
     except:
-        db_id = None
+        id = None
 
     category_id = request.form.get("category_id")
-    category = db.fetch_ingredient_category(category_id)
+    category = IngredientCategory.from_db(db=db, id=category_id)
     allergy_ids = request.form.getlist("allergies")
-    allergies = set()
-    for a_id in allergy_ids:
-        allergies.add(db.fetch_allergy(a_id))
+    allergies = {Allergy.from_db(db=db, id=id) for id in allergy_ids}
 
     # Construct the new Ingredient object and commit changes to DB
-    ingredient = Ingredient(name, category, db_id, allergies)
+    ingredient = Ingredient(name, category, allergies, db, id)
     try:
-        result = db.write(ingredient, overwrite=True)
-    except:
+        result = ingredient.write_to_db()
+    except Sqlite_error as e:
+        flash(str(e))
         result = False
 
     if result:
@@ -201,41 +205,20 @@ def admin_recipes():
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
         # get recipe list for the table
-        rows = db.get_summary("recipes", name_sort=True)
+        rows = Recipe.get_summary(db, name_sort=True)
         ingredients = db.get_rows("ingredients")
 
-        # contruct a list of tuple of contents of each recipe for the table
-        contents = db.get_rows("recipe_contents")
-        recipe_contents = {}
-        for c in contents:
-            recipe_id = c["recipe_id"]
-            ingredient_id = c["ingredient_id"]
-            ingredient_name = db.fetch_ingredient(ingredient_id).name
-
-            amount = c["amount"]
-            if not amount:
-                amount = ""
-
-            units = c["units"]
-            if not units:
-                units = ""
-            content = (ingredient_name, amount, units)
-            try:
-                recipe_contents[recipe_id].append(content)
-            except:
-                recipe_contents[recipe_id] = [content]
-
-        return render_template("recipes.html", rows=rows, ingredients=ingredients, recipe_contents=recipe_contents)
+        return render_template("recipes.html", rows=rows, ingredients=ingredients)
 
     # User reached route via POST (as by submitting a form via POST)
     # Fetch attributes for the recipe from the form
     name = request.form.get("name")
     try:
-        db_id = int(request.form.get("db_id"))
-        if not db_id:
-            db_id = None
+        id = int(request.form.get("id"))
+        if not id:
+            id = None
     except:
-        db_id = None
+        id = None
 
     instructions = request.form.get("instructions")
 
@@ -246,7 +229,7 @@ def admin_recipes():
         form_contents = None
 
     for fc in form_contents:
-        ingredient = db.fetch_ingredient(fc["ingredient_id"])
+        ingredient = Ingredient.from_db(db=db, id=fc["ingredient_id"])
 
         try:
             amount = float(fc["amount"])
@@ -260,10 +243,11 @@ def admin_recipes():
         contents.add(Content(ingredient, amount, units))
 
     # Construct the new Recipe object and commit changes to DB
-    recipe = Recipe(name, db_id, contents, instructions)
+    recipe = Recipe(name, instructions, contents, db, id)
     try:
-        result = db.write(recipe, overwrite=True)
-    except:
+        result = recipe.write_to_db()
+    except Sqlite_error as e:
+        flash(str(e))
         result = False
 
     if result:
@@ -290,15 +274,17 @@ def account():
 
     # User reached route via POST (as by submitting a form via POST)
     # Fetch User object from DB and replace its allergies set
-    user = db.fetch_user(session.get("user_id"))
-    allergies = request.form.getlist("allergies")
-    user.allergies = set(allergies)
+    user = User.from_db(db=db, id=session.get("user_id"))
+    allergy_ids = request.form.getlist("allergies")
+    allergies = {Allergy.from_db(db, id) for id in allergy_ids}
+    user.allergies = allergies
 
     # Commit the user changes to DB
-    # try:
-    result = db.write(user, overwrite=True)
-    # except:
-    #     result = False
+    try:
+        result = user.write_to_db()
+    except Sqlite_error as e:
+        flash(str(e))
+        result = False
 
     if result:
         flash("Changes saved successfully!")
@@ -330,7 +316,7 @@ def login():
             return apology("must provide password", 403)
 
         # Ensure user exists and querry for credentials
-        user = db.fetch_user(name=name)
+        user = User.from_db(db=db, name=name)
         if not user:
             return apology("user does not exist", 403)
 
@@ -339,7 +325,7 @@ def login():
             return apology("invalid username or password", 403)
 
         # Remember which user has logged in
-        session["user_id"] = user.db_id
+        session["user_id"] = user.id
 
         # Redirect user to home page
         return redirect("/")
@@ -372,7 +358,7 @@ def register():
             return apology("must provide username")
 
         # Querry database and check if the username is already taken
-        if db.exists("users", name=name):
+        if User.exists_in_db(db=db, name=name):
             return apology("this username is already taken")
 
         # Ensure both passwords were submitted
@@ -386,12 +372,15 @@ def register():
             return apology("passwords do not match")
 
         # Store a user entry in the database
-        pass_hash = generate_password_hash(password)
-        user = User(name, pass_hash)
-        user.db_id = db.write(user)
+        password_hash = generate_password_hash(password)
+        user = User(name=name, password_hash=password_hash, db=db)
 
-        if not user.db_id:
-            return apology("something went wrong :'(")
+        # Commit the user changes to DB
+        try:
+            result = user.write_to_db()
+        except Sqlite_error as e:
+            flash(str(e))
+            result = False
 
         # Log the user in
         return login()
@@ -409,22 +398,23 @@ def get_JSON():
     """Get JSON repr of an oject"""
     if request.method == "POST" and request.form:
         obj_type = request.form.get("obj_type")
-        db_id = request.form.get("db_id")
+        id = request.form.get("id")
     if request.method  == "GET"and request.args:
-        obj_type = request.args.get("obj_type")
-        db_id = request.args.get("db_id")
+        obj_type = request.args.get("obj_type").lower()
+        id = request.args.get("id")
     try:
-        db_id = int(db_id)
+        id = int(id)
     except:
         pass
 
     d = {
-        "allergy":             lambda x: db.fetch_allergy(x),
-        "ingredient_category": lambda x: db.fetch_ingredient_category(x),
-        "ingredient":          lambda x: db.fetch_ingredient(x),
-        "recipe":              lambda x: db.fetch_recipe(x),
+        "allergy":             lambda id: Allergy.from_db(db, id),
+        "ingredient_category": lambda id: IngredientCategory.from_db(db, id),
+        "ingredient":          lambda id: Ingredient.from_db(db, id),
+        "recipe":              lambda id: Recipe.from_db(db, id),
+        "user":                lambda id: User.from_db(db, id),
     }
-    obj = d[obj_type](db_id)
+    obj = d[obj_type](id)
 
     response = app.response_class(
         response=enc.encode(obj),

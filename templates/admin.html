@@ -43,8 +43,7 @@
     </div>
     <br>
     <br>
-
-    {% if rows %}
+    {% if not page == "admin" %}
         {% block modal %}
             <!-- Modal edit window-->
             <div class="modal fade" id="modal-form" tabindex="-1" role="dialog" aria-labelledby="modal-form-label" aria-hidden="true">
@@ -61,7 +60,7 @@
                             {% block form scoped %}
                                 <form id="{{ form_id }}" action="/admin/{{ page }}" method="post">
                                     <div class="form-group">
-                                        <input form="{{ form_id }}" type="number" id="form-db_id" name="db_id" value="" hidden>
+                                        <input form="{{ form_id }}" type="number" id="form-id" name="id" value="" hidden>
                                         <label for="form-name">Name</label>
                                         <input form="{{ form_id }}" type="text" class="form-control" id="form-name" name="name" required>
                                         <small class="form-text text-muted">Names must be unique.</small>
@@ -78,7 +77,6 @@
                 </div>
             </div>
         {% endblock %}
-
         {% block create %}
             <p>
                 <button type="button" class="btn btn-success trigger-form-new" data-toggle="modal" data-target="#modal-form">New</button>
@@ -88,35 +86,37 @@
         {% endblock %}
         <br>
 
-        {% block table %}
-            <table class="table-sm table-hover table-bordered mx-auto">
-                <thead>
-                    <tr>
-                        {% for key in rows[0].keys() %}
-                            <th scope="col">{{ key|title }}</th>
-                        {% endfor %}
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in rows %}
+        {% if rows %}
+            {% block table %}
+                <table class="table-sm table-hover table-bordered mx-auto">
+                    <thead>
                         <tr>
-                            {% for key in row.keys() %}
-                                {% block summary_td scoped %}
-                                   {{ var_to_td(row[key]) }}
-                                {% endblock %}
+                            {% for key in rows[0].keys() %}
+                                <th scope="col">{{ key|title }}</th>
                             {% endfor %}
-                            <td>
-                                <!-- Button trigger modal -->
-                                <span class="pseudo-href trigger-form-edit" data-toggle="modal" data-target="#modal-form" data-db_id="{{ row["id"] }}">
-                                    edit
-                                </span>
-                                delete
-                            </td>
+                            <th scope="col">Actions</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% endblock %}
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr>
+                                {% for key in row.keys() %}
+                                    {% block summary_td scoped %}
+                                       {{ var_to_td(row[key]) }}
+                                    {% endblock %}
+                                {% endfor %}
+                                <td>
+                                    <!-- Button trigger modal -->
+                                    <span class="pseudo-href trigger-form-edit" data-toggle="modal" data-target="#modal-form" data-id="{{ row["id"] }}">
+                                        edit
+                                    </span>
+                                    delete
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endblock %}
+        {% endif %}
     {% endif %}
 {% endblock %}
