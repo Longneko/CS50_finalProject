@@ -1,10 +1,67 @@
 {% extends "layout.html" %}
 
+{% set IMG_PATH = "static/images/" %}
+{% set IMG_DEFAULT = "0.jpg" %}
+
+{# Return a col div with a meal card.
+
+    : param meal: A recipe object to populate inner HTML, data and ids. If not provided, placeholders (e.g. %id%) will be used instead.
+    : param accepted: A boolean. If True, reroll and accept buttons are disabled.
+#}
+{% macro card_container(meal=None, accepted=False) -%}
+    {% set id = meal.id if meal else "%id%" %}
+    {% set name = meal.name if meal else "%name%" %}
+    {% set categories = meal|categories|join(", ") if meal else "%categories%" %}
+    <div class="col col-sm-3">
+        <div class="card mb-3" id="meal-card_{{ id }}" data-meal_id={{ id }} data-accepted=true>
+            <img class="card-img-top" id="meal-card-img_{{ id }}" src="{{ IMG_PATH }}{{ id }}.jpg" alt="{{ meal.name }}" onerror="this.src='{{ IMG_PATH }}{{ IMG_DEFAULT }}';">
+            <div class="card-body" id="meal-card-body_{{ id }}" style="overflow-y: auto; height: 180px;">
+                <div style="text-align: center;">
+                    <button type="button" class="btn btn-danger mr-1" id="meal-card-btn-remove_{{ id }}"><img src="static/images/button_remove.png" alt="remove"></button>
+                    <button type="button" class="btn btn-primary mr-1" id="meal-card-btn-reroll_{{ id }}" {{ "disabled" if accepted }}><img src="static/images/button_roll.png" alt="Reroll"></button>
+                    <button type="button" class="btn btn-success" id="meal-card-btn-accept_{{ id }}" {{ "disabled" if accepted }}><img src="static/images/button_accept.png" alt="accept"></button>
+                </div>
+                <h5 class="card-title" id="meal-card-header">{{ name }}</h5>
+                <p class="card-text" id="meal-card-categories">
+                    {{ categories }}
+                </p>
+            </div>
+        </div>
+    </div>
+{%- endmacro %}
+
 {% block title %}
     Index
 {% endblock %}
 
-{% block main %}
+{% block app_scripts %}
+    <!-- JavaScript for this page -->
+    {{ super() }}
+    <script> let card_container_prototype = `{{ card_container() }}`</script>
+    <script src="/static/scripts/fetch.js" type="text/javascript"></script>
+    <script src="/static/scripts/index.js" type="text/javascript"></script>
+{% endblock %}
 
+{% block main scoped %}
+    {% block meals scoped %}
+    <div style="text-align: left">
+        <div class="row">
+            {% for meal in meals %}
+                {{ card_container(meal, True) }}
+            {% endfor %}
+            <div class="col col col-sm-3">
+                <div class="card mb-3" id="meal-card_add" data-meal_id=0>
+                    <img class="card-img-top psedo-button" id="meal-card-img_add" src="static/images/button_add.png" alt="Add more">
+                    <div class="card-body" id="meal-card-body_add" style="overflow-y: auto; height: 180px;">
+                        <h5 class="card-title">Add more</h5>
+                        <p class="card-text">
+                            This will add a random meal based on your preferences that you can re-roll.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
 {% endblock %}
 

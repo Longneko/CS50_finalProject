@@ -37,6 +37,16 @@ def login_required(f):
     return decorated_function
 
 
+def admin_required(f):
+    """Decorate routes to require admin rights."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("is_admin"):
+            return apology("Not found", 404)
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 # filter for Jinja
 def is_content(x):
     content_keys = {"ingredient", "amount", "units"}
@@ -44,3 +54,13 @@ def is_content(x):
         return content_keys <= set(x.keys())
     except:
         return False
+
+
+# filter for Jinja
+def categories(recipe):
+    """Return sorted list of unique categories among recipe ingredients"""
+    categories = {c.ingredient.category.name for c in recipe.contents}
+    categories_sorted = [c for c in categories]
+    categories_sorted.sort()
+
+    return categories_sorted

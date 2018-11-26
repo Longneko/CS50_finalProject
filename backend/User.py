@@ -12,7 +12,7 @@ class User(DBEntry):
     :param is_admin: A boolean. Whether user has access to admin functional.
     :param allergies: A set of Allergy objects. Recipes containing ingredients causing these will
         not appear in user's meal plans.
-    :param allergies: A set of Recipe objects. Recipess that are currently in the meal plan
+    :param meals: A set of Recipe objects. Recipess that are currently in the meal plan
         of the user.
     :param db: Inherits from DBEntry.
     :param id: Inherits from DBEntry.
@@ -140,6 +140,40 @@ class User(DBEntry):
 
         return rows_affected
 
+    def add_meal(self, id):
+        """Add a meal to user by recipe id. Commit changes to DB"""
+        present_ids = {m.id for m in self.meals}
+        if not (id in present_ids):
+            meal = Recipe.from_db(db=self.db, id=id)
+            self.meals.add(meal)
+
+            t = (self.id, id)
+            self.db.c.execute('INSERT INTO user_meals (user_id, recipe_id) VALUES (?, ?)', t)
+            self.db.conn.commit()
+
+    def remove_meal(self, id):
+        """Remove a meal from user by recipe id. Commit changes to DB"""
+        found = False
+        it = iter(self.meals)
+        try:
+            meal = next(it)
+        except StopIteration:
+            meal = None
+        while not found and meal:
+            if meal.id == id:
+                found = True
+            else:
+                try:
+                    meal = next(it)
+                except StopIteration:
+                    meal = None
+
+        if found:
+            t = (self.id, id)
+            self.db.c.execute('DELETE FROM user_meals WHERE user_id = ? AND recipe_id = ?', t)
+            self.db.conn.commit()
+
+
     @classmethod
     def get_summary(cls, db, name_sort=False):
         """"Return summary table for all user objects in DB as dictionary list.
@@ -250,6 +284,35 @@ class User(DBEntry):
 
 
         return summary
+
+    def get_valid_recipes_id(self):
+        """Get set of ids of the recipes from DB that suit user preferences (including those that
+        might already be in meals).
+
+        Currently that is all recipes that have no allergens to trigger user's alelrgies.
+        """
+        if not self.db:
+            raise RuntimeError("User must have db assigned")
+
+        # Get unsuitable ingredients' ids
+        user_allergy_ids = {a.id for a in self.allergies}
+        needle = tuple(user_allergy_ids)
+        query = 'SELECT ingredient_id FROM ingredient_allergies WHERE allergy_id IN ({})'.format(
+                ("?, " * len(user_allergy_ids))[:-2])
+        rows = self.db.c.execute(query, needle).fetchall()
+        exclude_ingredients = {r["ingredient_id"] for r in rows}
+
+
+        # Get suitable recipes' ids
+        needle = tuple(exclude_ingredients)
+        query = """SELECT recipe_id FROM recipe_contents
+                   EXCEPT
+                   SELECT recipe_id FROM recipe_contents WHERE ingredient_id IN ({})
+                """.format(("?, " * len(exclude_ingredients))[:-2])
+        rows = self.db.c.execute(query, needle).fetchall()
+        include_recipes = {r["recipe_id"] for r in rows}
+
+        return include_recipes
 
     # password_hash made name mangled for JSON encoder to omit it
     @property

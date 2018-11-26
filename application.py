@@ -16,14 +16,15 @@ from backend.Recipe import Recipe, Content
 from backend.User import User
 from backend.DBHandler import DBHandler
 from backend.DBEntry import FoodEncoder
-from helpers import apology, login_required, is_content
+from helpers import apology, login_required, admin_required, is_content, categories
 
 # Configure application
 app = Flask(__name__)
 
 # Enable some  type testing and zip() in Jinja tempaltes
-app.jinja_env.filters['zip'] = zip
-app.jinja_env.filters['is_content'] = is_content
+app.jinja_env.filters["zip"] = zip
+app.jinja_env.filters["is_content"] = is_content
+app.jinja_env.filters["categories"] = categories
 
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -54,11 +55,12 @@ def index():
     # <TODO>
     """Show user's home page"""
 
-    kwargs = {
-        "rows": {}
-    }
+    user = User.from_db(db=db, id=session.get("user_id"))
+    recipe_ids = {m.id for m in user.meals}
 
-    return render_template("index.html", **kwargs)
+    recipes = [Recipe.from_db(db=db, id=id) for id in recipe_ids]
+
+    return render_template("index.html", meals=recipes)
 
 
 # TESTING ONLY. TO BE REMOVED!!!
@@ -72,6 +74,7 @@ def test_json():
 
 @app.route("/admin")
 @login_required
+@admin_required
 def admin():
     """Show admin main page"""
     return render_template("admin.html")
@@ -79,6 +82,7 @@ def admin():
 
 @app.route("/admin/allergies", methods=["GET", "POST"])
 @login_required
+@admin_required
 def admin_allergies():
     """Show allergies admin page for GET.
     Write new allergies to DB for POST.
@@ -116,6 +120,7 @@ def admin_allergies():
 
 @app.route("/admin/ingredient_categories", methods=["GET", "POST"])
 @login_required
+@admin_required
 def admin_ingredient_categories():
     """Show ingredient category admin page for GET.
     Write new ingredient category to DB for POST.
@@ -153,6 +158,7 @@ def admin_ingredient_categories():
 
 @app.route("/admin/ingredients", methods=["GET", "POST"])
 @login_required
+@admin_required
 def admin_ingredients():
     """Show ingredients admin page for GET.
     Write new ingredients to DB for POST.
@@ -198,6 +204,7 @@ def admin_ingredients():
 
 @app.route("/admin/recipes", methods=["GET", "POST"])
 @login_required
+@admin_required
 def admin_recipes():
     """Show recipes admin page for GET.
     Write new recipes to DB for POST.
@@ -326,6 +333,7 @@ def login():
 
         # Remember which user has logged in
         session["user_id"] = user.id
+        session["is_admin"] = user.is_admin
 
         # Redirect user to home page
         return redirect("/")
@@ -392,10 +400,43 @@ def register():
 
         return render_template("register.html")
 
+@app.route("/action", methods=["GET", "POST"])
+@login_required
+def action():
+    """Perform a command sent from user interface via form or AJAX.
+    Currently includes adding/removing user's meals from meal plans"""
+    if request.method == "POST" and request.form:
+        command = request.form.get("command")
+        id = request.form.get("id")
+    if request.method  == "GET"and request.args:
+        command = request.args.get("command").lower()
+        id = request.args.get("id")
+    try:
+        id = int(id)
+    except:
+        id = None
+
+    if not command or not id:
+        return("Missing or invalid params")
+
+    user = User.from_db(db=db, id=session.get("user_id"))
+
+    d = {
+        "add_meal"   : lambda user, id: user.add_meal(id),
+        "remove_meal": lambda user, id: user.remove_meal(id),
+    }
+    try:
+        obj = d[command](user, id)
+    except KeyError:
+        return("Missing or invalid params")
+
+    return("success")
+
+
 @app.route("/json", methods=["GET", "POST"])
 @login_required
 def get_JSON():
-    """Get JSON repr of an oject"""
+    """Get JSON repr of an object"""
     if request.method == "POST" and request.form:
         obj_type = request.form.get("obj_type")
         id = request.form.get("id")
@@ -405,16 +446,29 @@ def get_JSON():
     try:
         id = int(id)
     except:
-        pass
+        id = None
 
+    if obj_type in ["user", "valid_meals"]:
+        if not session.get("is_admin") or not id:
+            id = session.get("user_id")
+    elif not id:
+        return("Missing or invalid params")
+
+
+    # Users can access only their own user obj and valid_meals
+    user_id = session.get("user_id")
     d = {
-        "allergy":             lambda id: Allergy.from_db(db, id),
-        "ingredient_category": lambda id: IngredientCategory.from_db(db, id),
-        "ingredient":          lambda id: Ingredient.from_db(db, id),
-        "recipe":              lambda id: Recipe.from_db(db, id),
-        "user":                lambda id: User.from_db(db, id),
+        "allergy"            : lambda db, id: Allergy.from_db(db, id),
+        "ingredient_category": lambda db, id: IngredientCategory.from_db(db, id),
+        "ingredient"         : lambda db, id: Ingredient.from_db(db, id),
+        "recipe"             : lambda db, id: Recipe.from_db(db, id),
+        "user"               : lambda db, id: User.from_db(db, id),
+        "valid_meals"        : lambda db, id: User.from_db(db, id).get_valid_recipes_id(),
     }
-    obj = d[obj_type](id)
+    try:
+        obj = d[obj_type](db, id)
+    except KeyError:
+        return("Missing or invalid params")
 
     response = app.response_class(
         response=enc.encode(obj),

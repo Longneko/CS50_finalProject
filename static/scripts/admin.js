@@ -1,3 +1,5 @@
+// function fetch_object is imported from fetch.js via template
+
 // Get page name
 var path = window.location.pathname;
 var page = path.split("/").pop();
@@ -51,21 +53,10 @@ function set_default(element) {
     }
 }
 
-// Get object from DB asynchronously and execute provided func on success
-function fetch_object(obj_type, id, success) {
-    var params = {
-        "obj_type": obj_type,
-        "id": id,
-    }
-    var url = window.location.origin + "/json"
-
-    $.getJSON(url, params, function(data) {
-        return success(data);
-    });
-}
-
 // Sets basic form values to default from data-default if possible
 function form_set_new(form_id) {
+    $("#modal-label-" + form_id).text("New element");
+
     var form_elements = $("[form="+ form_id + "]");
 
     set_default(form_elements.filter("[name=id]"));
@@ -74,6 +65,8 @@ function form_set_new(form_id) {
 
 // Sets form values to those of the object under editing
 function form_set_edit(form_id, id, data=null) {
+    $("#modal-label-" + form_id).text("Edit element");
+
     if ( data ) {
         var form_elements = $("[form="+ form_id + "]");
 
@@ -101,7 +94,7 @@ $(document).ready(function() {
         var modal_id = $(this).data("target");
         var form_id = $(modal_id).find("form").attr("id")
 
-        var id = $(this).data("id");
+        var id = $(this).data("obj_id");
         form_set_edit(form_id, id);
     });
 

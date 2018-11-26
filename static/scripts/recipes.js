@@ -53,7 +53,7 @@ function content_add(list, ingredient, amount=0.0, units=null) {
                                 + ingredient["name"]
                                 + ( amount ? ": " + amount : "" )
                                 + ( units ? " " + units : "" )
-                                + "<span class=\"psedo-buottn\" id=\"contents-remove_" + ingredient["id"] + "\" data-ingredient_id=" + ingredient["id"] + " aria-label=\"remove\"> " + BADGE_REMOVE_CHAR + "</span>"
+                                + "<span class=\"psedo-button\" id=\"contents-remove_" + ingredient["id"] + "\" data-ingredient_id=" + ingredient["id"] + " aria-label=\"remove\"> " + BADGE_REMOVE_CHAR + "</span>"
                                 + "</span>"
     );
 
