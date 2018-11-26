@@ -10,25 +10,25 @@ Aside from the end-user intended experience, this app also provides (or rather w
   - Editing exisiting DB (adding new objects and editing existing ones)
   - Fetching select objects
   - Fetching summary tables (used in Admin interface)
+  - Generating and managing meal plans based on user preferences (allergies)
 * Web application (Flask):
   - Returning JSON-encoded objects in reponse to a POST request
   - Admin UI: managing meal constituents (allergies, ingredients and their categories, recipes)
   - End-user UI: registration, login, account settings editing (allergies only atm)
+  - End-user UI: displaying and managing user's meal plans
 
 ## Roadmap:
 (not necessarily in that order)
 * DB interface:
   - Deleting objects (and resolving dependencies)
-  - generating meal plans based on user preferences (allergies)
-  - storing users' active meal plans
 * Web application:
   - Meal images
   - Admin UI: managing user admin access
-  - End-user UI: displaying and managing user's meal plans
-  - CSS and layout fit for human beings
+  - CSS and layout fit for human beings (partially there)
 
 ## Requirements:
 - Python 3.6
-- Jinja 2.1
+  - Jinja 2.1
+  - Werkzeug 0.14.1
 - HTML5
 - Web UI also uses Bootstrap 4.1 and Jquery 3.1.1 imported online.
