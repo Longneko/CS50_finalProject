@@ -31,6 +31,9 @@ function set_default(element) {
         case "TEXTAREA":
             type = "textarea";
             break
+        case "IMG":
+            type = "img";
+            break
         case "INPUT":
             type = $(element).attr("type");
             break
@@ -45,11 +48,16 @@ function set_default(element) {
         default_val = "";
     }
 
-    if ( ["select", "textarea", "text", "number", "email", "url"].includes(type) ) {
+    if ( ["select", "textarea", "text", "number", "email", "url", "file"].includes(type) ) {
         $(element).val(default_val);
     }
     if ( type == "checkbox" ) {
         $(element).prop("checked", Boolean(default_val));
+    }
+    if ( type == "img" ) {
+        if ( default_val ) {
+            $(element).prop("src", default_val);
+        }
     }
 }
 

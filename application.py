@@ -7,7 +7,7 @@ from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions
 from werkzeug.security import check_password_hash, generate_password_hash
-from werkzeug.routing import Map, Rule
+from werkzeug.utils import secure_filename
 
 from backend.Allergy import Allergy
 from backend.IngredientCategory import IngredientCategory
@@ -28,6 +28,12 @@ app.jinja_env.filters["categories"] = categories
 
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
+
+# Image upload settings
+ALLOWED_IMG_EXTENSIONS = set(["jpg", "jpeg"])
+app.config["RECIPE_IMG_PATH"] = os.path.join(app.root_path, "static/images/recipes")
+app.config['MAX_CONTENT_LENGTH'] = 0.5 * 1024 * 1024 # limit max file size to 0.5MB
+
 
 # Ensure responses aren't cached
 @app.after_request
@@ -261,6 +267,24 @@ def admin_recipes():
         flash("Changes saved successfully!")
     else:
         flash("Something went wrong :(", category="danger")
+
+    # Apply image changes to the filesystem
+    filename = str(recipe.id) + ".jpg"
+    if request.form.get("image-delete"):
+        # Current image is to be deleted if exists
+        try:
+            os.remove(os.path.join(app.config["RECIPE_IMG_PATH"], filename))
+        except FileNotFoundError:
+            pass
+    else:
+        # New image is to be saved
+        image = request.files.get("image")
+        if image:
+            extension = image.filename.split(".").pop()
+            if extension in ALLOWED_IMG_EXTENSIONS:
+                image.save(os.path.join(app.config["RECIPE_IMG_PATH"], filename))
+            else:
+                flash("Only .jpg, .jpeg images allowed", category=danger)
 
     return redirect("admin/recipes")
 

@@ -1,5 +1,8 @@
 {% extends "admin.html" %}
 
+{% set RECIPE_IMG_PATH = url_for("static", filename="images/recipes/") %}
+{% set IMG_DEFAULT = "0.jpg" %}
+
 {% macro content_to_td(content) -%}
     {% set ns = namespace(content=content, td_str="") %}
     {% set ns.td_str = ns.content["ingredient"] %}
@@ -39,9 +42,21 @@
     Recipes
 {% endblock %}
 
-{% block form %}
+{% block form scoped %}
     {{ super() }}
     <div class="form-group">
+        <label for="form-image-current">Current image</label>
+        <img form="{{ form_id }}" class="img-form mb-2" id="form-image-current" src="" data-default="{{ RECIPE_IMG_PATH }}{{ IMG_DEFAULT }}" alt="Current image" onerror="img_error(this);"><br>
+        <label>
+            <input form="{{ form_id }}" class="mb-1" type="checkbox" id="form-image-delete" name="image-delete" data-default=false>
+            Delete current image
+            <small class="form-text text-muted">Default image will be used.</small>
+        </label><br>
+        <div form="{{ form_id }}" class="border mb-2" id="form-image-upload-group" data-is_default=true data-default=true>
+            <label for="form-image">Choose new image file</label>
+            <input form="{{ form_id }}" type="file" id="form-image-upload" name="image" accept="image/jpeg"><br>
+            <small class="form-text text-muted">Non-default images are overwritten and cannot be restored.</small>
+        </div>
         <label for="form-instructions">Instructions</label>
         <textarea form="{{ form_id }}" class="form-control" id="form-instructions" name="instructions"></textarea>
         <small class="form-text text-muted">Instructions should not contain the list of ingredients.</small>

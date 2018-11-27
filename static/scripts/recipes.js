@@ -3,7 +3,7 @@ const ING_BADGE_CSS_CLASS = "badge badge-primary ml-1 mr-1";
 const BADGE_REMOVE_CHAR = "&#x274E;";
 
 // Array of Content objects for recipe in editing
-var form_contents = ["meh"];
+var form_contents = [];
 
 // Extend function to set insturctions and contents to default
 let old_form_set_new = form_set_new;
@@ -11,12 +11,10 @@ form_set_new = function(form_id){
     old_form_set_new(form_id);
 
     var form_elements = $("[form="+ form_id + "]");
+    set_default(form_elements.filter("[id^=form-image-current]"));
     set_default(form_elements.filter("[name=instructions]"));
 
-    contents = form_elements.filter("[name=instructions]").val();
-
-    ingredient_ids = form_contents.map(x => x["ingredient_id"])
-
+    var ingredient_ids = form_contents.map(x => x["ingredient_id"]);
     for ( i of ingredient_ids ) {
         content_remove(form_contents, i);
     }
@@ -28,6 +26,10 @@ form_set_edit = function(form_id, id, data=null) {
     old_form_set_edit(form_id, id, data);
 
     if ( data ) {
+        var image =  $("[form="+ form_id + "]").filter("[id^=form-image-current]");
+        // var image = $("#" + form_id);
+        img_change_file(image, data["id"]);
+
         var instructions =  $("[form="+ form_id + "]").filter("[name=instructions]");
         instructions.val(data["instructions"]);
 
@@ -87,6 +89,19 @@ function content_remove(list, ingredient_id) {
 }
 
 $(document).ready(function() {
+    // Disables image upload elements and clears selected file if delete is checked
+    $("#form-image-delete").change(function() {
+        var form_id = $(this).attr("form");
+        var form_elements = $("[form="+ form_id + "]");
+
+        if ( this.checked ) {
+            set_default(form_elements.filter("[name=image]"));
+            form_elements.filter("[id=form-image-upload-group]").hide("fast");
+        } else {
+            form_elements.filter("[id=form-image-upload-group]").show("fast");
+        }
+    });
+
     // Adds new content to contents array for the db_write form
     $("#contents-add").click(function() {
         var ingredient = {
@@ -129,10 +144,8 @@ $(document).ready(function() {
 
     // Intercept form submit to attach contents data
     $("#form-db_write").submit(function(e) {
-        // e.preventDefault(); // DEBUG
         var form_id = $(this).attr("id");
 
         $("[form="+ form_id + "]").filter("[name=contents]").val(JSON.stringify(form_contents));
-        // console.log($(this).serialize()); // DEBUG
     });
 });

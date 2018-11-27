@@ -59,7 +59,7 @@
                         </div>
                         <div class="modal-body">
                             {% block form scoped %}
-                                <form id="{{ form_id }}" action="/admin/{{ page }}" method="post">
+                                <form id="{{ form_id }}" action="/admin/{{ page }}" method="post" enctype="multipart/form-data">
                                     <div class="form-group">
                                         <input form="{{ form_id }}" type="number" id="form-id" name="id" value="" hidden>
                                         <label for="form-name">Name</label>

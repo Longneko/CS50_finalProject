@@ -7,7 +7,6 @@ from functools import wraps
 
 from backend.Recipe import Content
 
-
 def apology(message, code=400):
     """Render message as an apology to user."""
     def escape(s):

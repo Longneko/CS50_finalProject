@@ -65,7 +65,7 @@ td {
     cursor: pointer;
 }
 
-.img-centered{
+.img-centered {
     display: inline-block;
     margin-left: auto;
     margin-right: auto;
@@ -77,6 +77,10 @@ td {
     width: 16rem;
 }
 
-.card-title{
+.card-title {
     font-weight: bold;
+}
+
+.img-form {
+    max-width: 50%;
 }

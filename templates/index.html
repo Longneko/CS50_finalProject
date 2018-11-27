@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 
-{% set IMG_PATH = "static/images/" %}
+{% set RECIPE_IMG_PATH = url_for("static", filename="images/recipes/") %}
+{% set BTN_IMG_PATH = url_for("static", filename="images/") %}
 {% set IMG_DEFAULT = "0.jpg" %}
 
 {# Return a col div with a meal card.
@@ -14,12 +15,12 @@
     {% set categories = meal|categories|join(", ") if meal else "%categories%" %}
     <div class="col col-sm-3">
         <div class="card mb-3" id="meal-card_{{ id }}" data-meal_id={{ id }} data-accepted=true>
-            <img class="card-img-top" id="meal-card-img_{{ id }}" src="{{ IMG_PATH }}{{ id }}.jpg" alt="{{ meal.name }}" onerror="this.src='{{ IMG_PATH }}{{ IMG_DEFAULT }}';">
+            <img class="card-img-top" id="meal-card-img_{{ id }}" src="{{ RECIPE_IMG_PATH }}{{ id }}.jpg" data-default="{{ RECIPE_IMG_PATH }}{{ IMG_DEFAULT }}" alt="{{ meal.name }}" onerror="img_error(this);">
             <div class="card-body" id="meal-card-body_{{ id }}" style="overflow-y: auto; height: 180px;">
                 <div style="text-align: center;">
-                    <button type="button" class="btn btn-danger mr-1" id="meal-card-btn-remove_{{ id }}"><img src="static/images/button_remove.png" alt="remove"></button>
-                    <button type="button" class="btn btn-primary mr-1" id="meal-card-btn-reroll_{{ id }}" {{ "disabled" if accepted }}><img src="static/images/button_roll.png" alt="Reroll"></button>
-                    <button type="button" class="btn btn-success" id="meal-card-btn-accept_{{ id }}" {{ "disabled" if accepted }}><img src="static/images/button_accept.png" alt="accept"></button>
+                    <button type="button" class="btn btn-danger mr-1" id="meal-card-btn-remove_{{ id }}"><img src="{{ BTN_IMG_PATH }}button_remove.png" alt="remove"></button>
+                    <button type="button" class="btn btn-primary mr-1" id="meal-card-btn-reroll_{{ id }}" {{ "disabled" if accepted }}><img src="{{ BTN_IMG_PATH }}button_roll.png" alt="Reroll"></button>
+                    <button type="button" class="btn btn-success" id="meal-card-btn-accept_{{ id }}" {{ "disabled" if accepted }}><img src="{{ BTN_IMG_PATH }}button_accept.png" alt="accept"></button>
                 </div>
                 <h5 class="card-title" id="meal-card-header">{{ name }}</h5>
                 <p class="card-text" id="meal-card-categories">

@@ -5,7 +5,6 @@ const IMG_PATH = "static/images/";
 const MSG_NO_MORE_MEALS = "There are no more recipes that fit your settings T_T";
 
 var action_url = window.location.origin + "/action"; // URL to send meal add/remove commands
-console.log(action_url); // DEBUG
 
 active_meal_ids = []; // holds ids of meals/recipes in cards
 
@@ -92,8 +91,8 @@ function update_card(card_id, recipe) {
 
     // Update card contents and data
     $(card).data("meal_id", recipe["id"]);
-    var new_img_src = $(card).find("[id^=meal-card-img]").prop("src").replace(old_recipe_id, recipe["id"]);
-    $(card).find("[id^=meal-card-img]").prop("src", new_img_src);
+    var img = $(card).find("[id^=meal-card-img]");
+    img_change_file(img, recipe["id"]);
     $(card).find("[id^=meal-card-header]").html(recipe["name"]);
     $(card).find("[id^=meal-card-categories]").html(recipe_to_cat_str(recipe));
 
