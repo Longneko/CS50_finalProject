@@ -22,8 +22,8 @@ Aside from the end-user intended experience, this app also provides (or rather w
 * DB interface:
   - Deleting objects (and resolving dependencies)
 * Web application:
-  - Meal images
-  - Admin UI: managing user admin access
+  - End-user UI: displaying meal contents
+  - Admin UI: managing users and their admin access
   - CSS and layout fit for human beings (partially there)
 
 ## Requirements:
