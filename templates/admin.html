@@ -11,7 +11,7 @@
         </td>
     {% else %}
         <td>
-            {{ var|default("", true) }}
+            {{ var|default("", true)|string|truncate() }}
         </td>
     {% endif %}
 {%- endmacro %}
@@ -25,7 +25,6 @@
 {% block app_scripts %}
     <!-- JavaScript for this page -->
     {{ super() }}
-    <script src="/static/scripts/fetch.js" type="text/javascript"></script>
     <script src="/static/scripts/admin.js" type="text/javascript"></script>
 {% endblock %}
 
@@ -48,7 +47,7 @@
         {% block modal %}
             <!-- Modal edit window-->
             {% set form_id="form-db_write" %}
-            <div class="modal fade" id="modal-form" tabindex="-1" role="dialog" aria-labelledby="modal-form-label" aria-hidden="true">
+            <div class="modal fade" id="modal-form" tabindex="-1" role="dialog" aria-labelledby="modal-label-{{ form_id }}" aria-hidden="true">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -78,14 +77,12 @@
                 </div>
             </div>
         {% endblock %}
+
         {% block create %}
             <p>
                 <button type="button" class="btn btn-success trigger-form-new" data-toggle="modal" data-target="#modal-form">New</button>
             </p>
-
-            </div>
         {% endblock %}
-        <br>
 
         {% if rows %}
             {% block table %}
@@ -108,7 +105,7 @@
                                 {% endfor %}
                                 <td>
                                     <!-- Button trigger modal -->
-                                    <span class="pseudo-href trigger-form-edit" data-toggle="modal" data-target="#modal-form" data-obj_id="{{ row["id"] }}">
+                                    <span class="pseudo-href" data-toggle="modal" data-target="#modal-form" data-obj_id="{{ row["id"] }}">
                                         edit
                                     </span>
                                     delete

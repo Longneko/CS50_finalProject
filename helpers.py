@@ -1,9 +1,11 @@
 import os
 import urllib.request
 import locale
+import re
 
-from flask import redirect, render_template, request, session
 from functools import wraps
+from flask import redirect, render_template, request, session
+from jinja2 import evalcontextfilter, Markup, escape
 
 from backend.Recipe import Content
 
@@ -55,7 +57,7 @@ def is_content(x):
         return False
 
 
-# filter for Jinja
+# Filter for Jinja
 def categories(recipe):
     """Return sorted list of unique categories among recipe ingredients"""
     categories = {c.ingredient.category.name for c in recipe.contents}
@@ -63,3 +65,15 @@ def categories(recipe):
     categories_sorted.sort()
 
     return categories_sorted
+
+
+# Filter for Jinja. Returns a string where newline chars are  replaced with <br> tags and <p> wraps
+# http://jinja.pocoo.org/docs/2.10/api/#custom-filters
+_paragraph_re = re.compile(r'(?:\r\n|\r|\n){2,}')
+@evalcontextfilter
+def nl2br(eval_ctx, value):
+    result = u'\n\n'.join(u'<p>%s</p>' % p.replace('\n', Markup('<br>\n'))
+                          for p in _paragraph_re.split(escape(value)))
+    if eval_ctx.autoescape:
+        result = Markup(result)
+    return result

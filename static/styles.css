@@ -61,16 +61,8 @@ td {
     text-decoration: underline;
 }
 
-.psedo-button {
+.action {
     cursor: pointer;
-}
-
-.img-centered {
-    display: inline-block;
-    margin-left: auto;
-    margin-right: auto;
-    vertical-align: middle;
-    max-width: 50%;
 }
 
 .card{
@@ -79,6 +71,12 @@ td {
 
 .card-title {
     font-weight: bold;
+}
+
+.card-img-top {
+    max-width: 15rem;
+    max-height: 15rem;
+    object-fit: cover;
 }
 
 .img-form {

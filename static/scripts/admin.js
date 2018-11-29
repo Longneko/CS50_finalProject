@@ -91,14 +91,14 @@ function form_set_edit(form_id, id, data=null) {
 
 $(document).ready(function() {
     // On new popluate the form with default values
-    $(".trigger-form-new").click(function() {
+    $("[data-target^='#modal-form']").click(function() {
         var modal_id = $(this).data("target");
         var form_id = $(modal_id).find("form").attr("id")
         form_set_new(form_id);
     });
 
     // On edit popluate form with values of the entry under editing
-    $(".trigger-form-edit").click(function() {
+    $("[data-target^='#modal-form']").click(function() {
         var modal_id = $(this).data("target");
         var form_id = $(modal_id).find("form").attr("id")
 

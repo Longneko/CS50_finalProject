@@ -18,7 +18,7 @@
         <label for="select-category">Category</label>
         <select form="{{ form_id }}" class="form-control" id="select-category" name="category_id" data-default=0 required>
             <option value=0 selected="selected" disabled>select category</option>
-            {% for c in categories %}
+            {% for c in categories|sort(attribute="name") %}
                 <option value={{ c["id"] }}>{{ c["name"] }}</option>
             {% endfor %}
         </select>

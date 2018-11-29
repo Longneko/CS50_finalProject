@@ -289,7 +289,8 @@ class User(DBEntry):
         """Get set of ids of the recipes from DB that suit user preferences (including those that
         might already be in meals).
 
-        Currently that is all recipes that have no allergens to trigger user's alelrgies.
+        Currently that is all recipes that have no allergens to trigger user's alelrgies. Recipes
+        with empty contents are not included.
         """
         if not self.db:
             raise RuntimeError("User must have db assigned")

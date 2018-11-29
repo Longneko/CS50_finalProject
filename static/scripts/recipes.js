@@ -1,3 +1,5 @@
+// function img_change_file is imported from image.js via template
+
 const ING_BADGE_ID_PREFIX = "contents-added-badge_";
 const ING_BADGE_CSS_CLASS = "badge badge-primary ml-1 mr-1";
 const BADGE_REMOVE_CHAR = "&#x274E;";
@@ -51,11 +53,11 @@ form_set_edit = function(form_id, id, data=null) {
 // Add new content to the list and reflect that in the interface
 function content_add(list, ingredient, amount=0.0, units=null) {
     // Add ingredient badge to the ingredients list div
-    $("#contents-added").append("<span class=\""+ ING_BADGE_CSS_CLASS + "\" id=\"" + ING_BADGE_ID_PREFIX + ingredient["id"] + "\">"
+    $("#contents-added").append("<span class='"+ ING_BADGE_CSS_CLASS + "' id='" + ING_BADGE_ID_PREFIX + ingredient["id"] + "'>"
                                 + ingredient["name"]
                                 + ( amount ? ": " + amount : "" )
                                 + ( units ? " " + units : "" )
-                                + "<span class=\"psedo-button\" id=\"contents-remove_" + ingredient["id"] + "\" data-ingredient_id=" + ingredient["id"] + " aria-label=\"remove\"> " + BADGE_REMOVE_CHAR + "</span>"
+                                + "<span class='action' id='contents-remove_" + ingredient["id"] + "' data-ingredient_id=" + ingredient["id"] + " aria-label='remove'> " + BADGE_REMOVE_CHAR + "</span>"
                                 + "</span>"
     );
 

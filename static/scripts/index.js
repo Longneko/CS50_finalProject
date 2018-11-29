@@ -1,8 +1,10 @@
-// var card_container_prototype is imported from template
+// var template_card_container is imported from template
+// var template_meal_details is imported from template
 // function fetch_object is imported from fetch.js via template
 
-const IMG_PATH = "static/images/";
 const MSG_NO_MORE_MEALS = "There are no more recipes that fit your settings T_T";
+const MEAL_DETAILS_CONTAINER_ID = "modal-meal-details-content";
+const ADD_CARDS_BEFORE = "meal-card-container_add"; // id of the element before which new cards should be added
 
 var action_url = window.location.origin + "/action"; // URL to send meal add/remove commands
 
@@ -41,79 +43,94 @@ function get_random_valid_recipe(exclude_ids, data=null, success=null) {
 }
 
 // Add new meal to the user and add a card container to DOM using random valid meal
-function add_meal(exclude_ids, next_card_id, data=null) {
+function add_meal(exclude_ids, add_before_id, data=null) {
     if ( data == -1 ) {
         alert(MSG_NO_MORE_MEALS);
     } else if ( data ) {
         var recipe = data;
         exclude_ids.push(recipe["id"]);
 
-        // create an html string of a card col by replacing placeholders in the prototype
-        var card_container = card_container_prototype;
+        // create an html string of a card col by replacing placeholders in the template
+        var card_container = template_card_container;
         for ( pholder of ["%id%", "%name%"]) {
-            card_container = card_container.split(pholder).join(recipe[pholder.substring(1, pholder.length - 1)]);
+            var key = pholder.substring(1, pholder.length - 1);
+            card_container = card_container.split(pholder).join(recipe[key]);
         }
         card_container = card_container.split("%categories%").join(recipe_to_cat_str(recipe));
 
-        $("#" + next_card_id).parent().before(card_container);
-
-        $("#meal-card-btn-reroll_" + recipe["id"]).click(function() {
-            var recipe_id = $(this).prop("id").split("_").pop();
-            var card_id = "meal-card_" + recipe_id;
-
-            reroll_meal(card_id, active_meal_ids);
-        });
-
-        $("#meal-card-btn-accept_" + recipe["id"]).click(function() {
-            var recipe_id = $(this).prop("id").split("_").pop();
-            var card_id = "meal-card_" + recipe_id;
-
-            accept_meal(card_id);
-        });
-
-        $("#meal-card-btn-remove_" + recipe["id"]).click(function() {
-            var recipe_id = $(this).prop("id").split("_").pop();
-            var card_id = "meal-card_" + recipe_id;
-
-            remove_meal(card_id, active_meal_ids);
-        });
+        $("#" + add_before_id).before(card_container);
     } else {
         get_random_valid_recipe(exclude_ids, null, function(data) {
-            add_meal(exclude_ids, next_card_id, data);
+            add_meal(exclude_ids, add_before_id, data);
         });
     }
 }
 
-// Change card contents to show another recipe
-function update_card(card_id, recipe) {
-    var old_recipe_id = $("#" + card_id).data("meal_id");
-    var card = $("#" + card_id);
+// Change meal details modal contents to show another recipe
+function update_meal_details(container_id, recipe) {
+    var container = $("#" + container_id);
 
-    // Update card contents and data
-    $(card).data("meal_id", recipe["id"]);
-    var img = $(card).find("[id^=meal-card-img]");
+    // Update container data and contents
+    $(container).find("[data-obj_id]").data("obj_id", recipe["id"]);
+
+    // create an html string of a meal details by replacing placeholders in the template
+    var details = template_meal_details;
+    for ( pholder of ["%id%", "%name%", "%instructions%"]) {
+        var key = pholder.substring(1, pholder.length - 1);
+        try {
+            html_str = (recipe[key]).replace(/(?:\r\n|\r|\n)/g, '<br>'); // Replace newline chars with <br> https://stackoverflow.com/a/784547/10491824
+        } catch (err) {
+            html_str = recipe[key];
+        }
+        details = details.split(pholder).join(html_str);
+    }
+    var contents_html = "";
+    recipe["contents"].sort((a, b) => a["ingredient"]["name"].localeCompare(b["ingredient"]["name"]));  // sort contents by ingredient name https://stackoverflow.com/questions/1129216/sort-array-of-objects-by-string-property-value#comment20851078_1129270
+    for ( c of recipe["contents"] ) {
+        var ingredient_name = c["ingredient"]["name"];
+        var ingredient_upper = ingredient_name.charAt(0).toUpperCase() + ingredient_name.slice(1);
+        var amount = c["amount"] ? ( " - " + c["amount"] ) : "";
+        var units = c["units"] ? ( " " + c["units"] ) : "";
+
+        contents_html += "<li>" +  ingredient_upper + amount + units + "</li>\n";
+    }
+    details = details.split("%contents%").join(contents_html);
+
+    $("#" + container_id).html(details);
+}
+
+// Change card contents to show another recipe
+function update_card(card, recipe) {
+    var card = $(card);
+    var old_recipe_id = card.data("meal_id");
+
+    // Update card data and contents
+    card.data("meal_id", recipe["id"]);
+    card.find("[data-obj_id]").data("obj_id", recipe["id"]);
+    var img = card.find("[id^=meal-card-img]");
     img_change_file(img, recipe["id"]);
-    $(card).find("[id^=meal-card-header]").html(recipe["name"]);
-    $(card).find("[id^=meal-card-categories]").html(recipe_to_cat_str(recipe));
+    card.find("[id^=meal-card-header]").html(recipe["name"]);
+    card.find("[id^=meal-card-categories]").html(recipe_to_cat_str(recipe));
 
 
     // update decendant elemets' ids with that of the new recipe
-    var elements = $(card).find("*").add(card);
+    var elements = card.find("*").add(card);
     for ( el of elements ) {
         try {
             var new_id = $(el).prop("id").replace(old_recipe_id, recipe["id"]);
             $(el).prop("id", new_id);
-        } catch (e) {
+        } catch (err) {
         }
     }
 }
 
 // Reroll meal on a card
-function reroll_meal(card_id, exclude_ids){
-    var current_recipe_id = $("#" + card_id).data("meal_id")
+function reroll_meal(card, exclude_ids){
+    var card = $(card);
+    var current_recipe_id = card.data("meal_id");
     get_random_valid_recipe(exclude_ids, null, function(recipe) {
         if ( recipe != -1 ) {
-            update_card(card_id, recipe);
+            update_card(card, recipe);
 
             // replace rerolled recipe id in list of active ones
             var index = exclude_ids.indexOf(current_recipe_id);
@@ -128,9 +145,9 @@ function reroll_meal(card_id, exclude_ids){
 }
 
 // Add meal to the user and accept corresponding meal container
-function accept_meal(card_id) {
-    var card = $("#" + card_id)
-    var recipe_id = parseInt($(card).data("meal_id"));
+function accept_meal(card) {
+    var card = $(card);
+    var recipe_id = parseInt(card.data("meal_id"));
     var data = {
         "command": "add_meal",
         "id": recipe_id,
@@ -138,16 +155,16 @@ function accept_meal(card_id) {
 
     $.post(action_url, data, function(response) {
         if ( response == "success" ) {
-            $(card).find("[id^=meal-card-btn-reroll]").prop('disabled', true);
-            $(card).find("[id^=meal-card-btn-accept]").prop('disabled', true);
+            card.find("[id^=meal-card-btn-reroll]").prop('disabled', true);
+            card.find("[id^=meal-card-btn-accept]").prop('disabled', true);
         }
     });
 }
 
 // Remove meal from the user and remove corresponding meal container
-function remove_meal(card_id, meal_ids) {
-    var card = $("#" + card_id)
-    var recipe_id = parseInt($(card).data("meal_id"));
+function remove_meal(card, meal_ids) {
+    var card = $(card);
+    var recipe_id = parseInt(card.data("meal_id"));
     var data = {
         "command": "remove_meal",
         "id": recipe_id,
@@ -160,9 +177,39 @@ function remove_meal(card_id, meal_ids) {
             if (index > -1) {
                 meal_ids.splice(index, 1);
             }
-            $(card).parent().remove(); // removing parent because card is always wrapped in a div
+            card.parent().remove(); // removing parent because card is always wrapped in a div
         }
     });
+}
+
+
+function click_show_meal_details(e) {
+    var recipe_id = $(e).data("obj_id");
+    fetch_object("recipe", recipe_id, function(recipe){
+        update_meal_details(MEAL_DETAILS_CONTAINER_ID, recipe);
+    });
+}
+
+function click_card_remove(e) {
+    var recipe_id = $(e).data("obj_id");
+    var card = $("#meal-card_" + recipe_id);
+    remove_meal(card, active_meal_ids);
+}
+
+function click_card_accept(e) {
+    var recipe_id = $(e).data("obj_id");
+    var card = $("#meal-card_" + recipe_id);
+    accept_meal(card);
+}
+
+function click_card_reroll(e) {
+    var recipe_id = $(e).data("obj_id");
+    var card = $("#meal-card_" + recipe_id);
+    reroll_meal(card, active_meal_ids);
+}
+
+function click_card_add() {
+    add_meal(active_meal_ids, ADD_CARDS_BEFORE);
 }
 
 $(document).ready(function() {
@@ -172,29 +219,6 @@ $(document).ready(function() {
     }
 
     $("#meal-card-img_add").click(function() {
-        add_meal(active_meal_ids, "meal-card_add");
-    });
-
-    // accepted cards have disabled reroll buttons, so this is left 'just in case'
-    $("[id^=meal-card-btn-reroll]").click(function() {
-        var recipe_id = $(this).prop("id").split("_").pop();
-        var card_id = "meal-card_" + recipe_id;
-
-        reroll_meal(card_id, active_meal_ids);
-    });
-
-    // accepted cards have disabled accept buttons, so this is left 'just in case'
-    $("[id^=meal-card-btn-accept]").click(function() {
-        var recipe_id = $(this).prop("id").split("_").pop();
-        var card_id = "meal-card_" + recipe_id;
-
-        accept_meal(card_id);
-    });
-
-    $("[id^=meal-card-btn-remove]").click(function() {
-        var recipe_id = $(this).prop("id").split("_").pop();
-        var card_id = "meal-card_" + recipe_id;
-
-        remove_meal(card_id, active_meal_ids);
+        add_meal(active_meal_ids, ADD_CARDS_BEFORE);
     });
 });

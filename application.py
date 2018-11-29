@@ -16,15 +16,18 @@ from backend.Recipe import Recipe, Content
 from backend.User import User
 from backend.DBHandler import DBHandler
 from backend.DBEntry import FoodEncoder
-from helpers import apology, login_required, admin_required, is_content, categories
+from helpers import apology, login_required, admin_required, is_content, categories, nl2br
 
 # Configure application
 app = Flask(__name__)
 
-# Enable some  type testing and zip() in Jinja tempaltes
+# Configure Jinja filters and whitespace handling
 app.jinja_env.filters["zip"] = zip
+app.jinja_env.filters["nl2br"] = nl2br
 app.jinja_env.filters["is_content"] = is_content
 app.jinja_env.filters["categories"] = categories
+app.jinja_env.trim_blocks = True
+app.jinja_env.lstrip_blocks = True
 
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True

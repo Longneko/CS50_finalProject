@@ -6,28 +6,72 @@
 
 {# Return a col div with a meal card.
 
-    : param meal: A recipe object to populate inner HTML, data and ids. If not provided, placeholders (e.g. %id%) will be used instead.
+    : param meal: A recipe/meal object to populate inner HTML, data and ids. If not provided, placeholders (e.g. %id%) will be used instead.
     : param accepted: A boolean. If True, reroll and accept buttons are disabled.
 #}
 {% macro card_container(meal=None, accepted=False) -%}
     {% set id = meal.id if meal else "%id%" %}
     {% set name = meal.name if meal else "%name%" %}
     {% set categories = meal|categories|join(", ") if meal else "%categories%" %}
-    <div class="col col-sm-3">
+    <div class="col col-sm-3" id="meal-card-container_{{ id }}">
         <div class="card mb-3" id="meal-card_{{ id }}" data-meal_id={{ id }} data-accepted=true>
-            <img class="card-img-top" id="meal-card-img_{{ id }}" src="{{ RECIPE_IMG_PATH }}{{ id }}.jpg" data-default="{{ RECIPE_IMG_PATH }}{{ IMG_DEFAULT }}" alt="{{ meal.name }}" onerror="img_error(this);">
+            <img class="card-img-top action" id="meal-card-img_{{ id }}" src="{{ RECIPE_IMG_PATH }}{{ id }}.jpg" data-default="{{ RECIPE_IMG_PATH }}{{ IMG_DEFAULT }}"
+                data-toggle="modal" data-target="#modal-meal-details" data-obj_id="{{ id }}" alt="{{ meal.name }}" onerror="img_error(this);" onclick="click_show_meal_details(this);">
             <div class="card-body" id="meal-card-body_{{ id }}" style="overflow-y: auto; height: 180px;">
-                <div style="text-align: center;">
-                    <button type="button" class="btn btn-danger mr-1" id="meal-card-btn-remove_{{ id }}"><img src="{{ BTN_IMG_PATH }}button_remove.png" alt="remove"></button>
-                    <button type="button" class="btn btn-primary mr-1" id="meal-card-btn-reroll_{{ id }}" {{ "disabled" if accepted }}><img src="{{ BTN_IMG_PATH }}button_roll.png" alt="Reroll"></button>
-                    <button type="button" class="btn btn-success" id="meal-card-btn-accept_{{ id }}" {{ "disabled" if accepted }}><img src="{{ BTN_IMG_PATH }}button_accept.png" alt="accept"></button>
+                <div class="mb-1" style="text-align: center;">
+                    <button type="button" class="btn btn-danger mr-1" id="meal-card-btn-remove_{{ id }}" data-obj_id={{ id }} onclick="click_card_remove(this);"><img src="{{ BTN_IMG_PATH }}button_remove.png"></button>
+                    <button type="button" class="btn btn-primary mr-1" id="meal-card-btn-reroll_{{ id }}" data-obj_id={{ id }} {{ "disabled" if accepted }} onclick="click_card_reroll(this);"><img src="{{ BTN_IMG_PATH }}button_roll.png"></button>
+                    <button type="button" class="btn btn-success" id="meal-card-btn-accept_{{ id }}" data-obj_id={{ id }} {{ "disabled" if accepted }} onclick="click_card_accept(this);"><img src="{{ BTN_IMG_PATH }}button_accept.png"></button>
                 </div>
-                <h5 class="card-title" id="meal-card-header">{{ name }}</h5>
+                <h5 class="card-title action" id="meal-card-header" data-toggle="modal" data-target="#modal-meal-details" data-obj_id="{{ id }}" onclick="click_show_meal_details(this);">{{ name }}</h5>
                 <p class="card-text" id="meal-card-categories">
                     {{ categories }}
                 </p>
             </div>
         </div>
+    </div>
+{%- endmacro %}
+
+{# Return a contents for a modal window with meal details.
+
+    : param meal: A recipe/meal object to populate inner HTML, data and ids. If not provided, placeholders (e.g. %id%) will be used instead.
+#}
+{% macro meal_details(meal=None) -%}
+    {% set id = meal.id if meal else "%id%" %}
+    {% set name = meal.name if meal else "%name%" %}
+    {% set contents = meal.contents if meal else [] %}
+    {% set instructions = meal.instructions if meal else "%instructions%" %}
+    <div class="modal-header">
+        <h3 class="modal-title" id="modal-meal-details-label">{{ name }}</h3>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="modal-body container" style="text-align: left;">
+        <div class="row">
+            <div class="col">
+                <h4>Ingredients</h4>
+                <ul>
+                    {% for c in contents|sort(attribute="ingredient.name") %}
+                        <li>{{ c.ingredient.name|capitalize }}{{ ( " - " + c.amount|default("", true)|string ) if c.amount }} {{ c.units|default("", true) }} </li>
+                    {% else %}
+                        %contents%
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="col">
+                <img id="meal-modal-meal-details-img" src="{{ RECIPE_IMG_PATH }}{{ id }}.jpg" data-default="{{ RECIPE_IMG_PATH }}{{ IMG_DEFAULT }}" alt="{{ name }}" onerror="img_error(this);">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <h4>Instructions</h4>
+                {{ instructions|nl2br }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <label class="btn btn-secondary" data-dismiss="modal">Close</label>
     </div>
 {%- endmacro %}
 
@@ -38,8 +82,8 @@
 {% block app_scripts %}
     <!-- JavaScript for this page -->
     {{ super() }}
-    <script> let card_container_prototype = `{{ card_container() }}`</script>
-    <script src="/static/scripts/fetch.js" type="text/javascript"></script>
+    <script> let template_card_container = `{{ card_container() }}`</script>
+    <script> let template_meal_details = `{{ meal_details() }}`</script>
     <script src="/static/scripts/index.js" type="text/javascript"></script>
 {% endblock %}
 
@@ -50,9 +94,9 @@
             {% for meal in meals %}
                 {{ card_container(meal, True) }}
             {% endfor %}
-            <div class="col col col-sm-3">
+            <div class="col col col-sm-3" id="meal-card-container_add">
                 <div class="card mb-3" id="meal-card_add" data-meal_id=0>
-                    <img class="card-img-top psedo-button" id="meal-card-img_add" src="static/images/button_add.png" alt="Add more">
+                    <img class="card-img-top action" id="meal-card-img_add" src="static/images/button_add.png" alt="Add more">
                     <div class="card-body" id="meal-card-body_add" style="overflow-y: auto; height: 180px;">
                         <h5 class="card-title">Add more</h5>
                         <p class="card-text">
@@ -63,6 +107,17 @@
             </div>
         </div>
     </div>
+    {% endblock %}
+
+    {% block modal %}
+        <!-- Modal meal details window-->
+        <div class="modal fade" id="modal-meal-details" tabindex="-1" role="dialog" aria-labelledby="modal-meal-details-label" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content" id="modal-meal-details-content">
+                    You should be seeing meal details instead of this text.
+                </div>
+            </div>
+        </div>
     {% endblock %}
 {% endblock %}
 
