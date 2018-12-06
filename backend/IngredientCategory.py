@@ -3,6 +3,9 @@ from backend.DBEntry import DBEntry, to_db_obj_name
 class IngredientCategory(DBEntry):
     """Categorizes ingredients"""
     table_main = "ingredient_categories"
+    associations = [
+        ("ingredients","category_id", False)
+    ]
 
     @classmethod
     def get_summary(cls, db, name_sort=False):

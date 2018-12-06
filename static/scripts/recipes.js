@@ -15,11 +15,13 @@ form_set_new = function(form_id){
     var form_elements = $("[form="+ form_id + "]");
     set_default(form_elements.filter("[id^=form-image-current]"));
     set_default(form_elements.filter("[name=instructions]"));
+    set_default($("#contents-select-ingredient"));
 
     var ingredient_ids = form_contents.map(x => x["ingredient_id"]);
     for ( i of ingredient_ids ) {
         content_remove(form_contents, i);
     }
+
 };
 
 // Extend function to set insturctions and contents based on fetched object

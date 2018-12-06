@@ -14,7 +14,7 @@ from backend.IngredientCategory import IngredientCategory
 from backend.Ingredient import Ingredient
 from backend.Recipe import Recipe, Content
 from backend.User import User
-from backend.DBHandler import DBHandler
+from backend.DBHandler import DBHandler, DBError
 from backend.DBEntry import FoodEncoder
 from helpers import apology, login_required, admin_required, is_content, categories, nl2br
 
@@ -61,7 +61,6 @@ enc = FoodEncoder(indent = 2)
 @app.route("/")
 @login_required
 def index():
-    # <TODO>
     """Show user's home page"""
 
     user = User.from_db(db=db, id=session.get("user_id"))
@@ -81,28 +80,39 @@ def test_json():
     return render_template("test_json.html")
 
 
-@app.route("/admin")
+@app.route("/admin", defaults={"obj_type":None}, methods=["GET"])
+@app.route("/admin/<string:obj_type>", methods=["GET"])
 @login_required
 @admin_required
-def admin():
-    """Show admin main page"""
-    return render_template("admin.html")
+def admin_display(obj_type):
+    """Show admin page for selected object type"""
+    template = obj_type + ".html" if obj_type else "admin.html"
+    if obj_type == "allergies":
+        kwargs = {"rows":Allergy.get_summary(db)}
+    elif obj_type == "ingredient_categories":
+        kwargs = {"rows":IngredientCategory.get_summary(db)}
+    elif obj_type == "ingredients":
+        kwargs = {"rows"      : Ingredient.get_summary(db),
+                  "categories": db.get_rows("ingredient_categories"),
+                  "allergies" : db.get_rows("allergies")}
+    elif obj_type == "recipes":
+        kwargs = {"rows"       : Recipe.get_summary(db),
+                  "ingredients": db.get_rows("ingredients")}
+    elif obj_type == "users":
+        kwargs = {"rows"      : User.get_summary(db),
+                  "allergies" : db.get_rows("allergies")}
+    else:
+        kwargs = {}
+
+    return render_template(template, **kwargs)
 
 
-@app.route("/admin/allergies", methods=["GET", "POST"])
+@app.route("/admin/<string:obj_type>", methods=["POST"])
 @login_required
 @admin_required
-def admin_allergies():
-    """Show allergies admin page for GET.
-    Write new allergies to DB for POST.
-    """
-    # User reached route via GET (as by clicking a link or via redirect)
-    if request.method == "GET":
-        rows = Allergy.get_summary(db, name_sort=True)
-        return render_template("allergies.html", rows=rows)
-
-    # User reached route via POST (as by submitting a form via POST)
-    # Fetch attributes for the allergy category from the form
+def admin_write(obj_type):
+    """Write new object to DB or edit an existing one based on submitted form"""
+    # Set basic values present for all object types
     name = request.form.get("name")
     try:
         id = int(request.form.get("id"))
@@ -111,213 +121,171 @@ def admin_allergies():
     except ValueError:
         id = None
 
-    # Construct the new IngredientCategory object and commit changes to DB
-    allergy = Allergy(name, db, id)
-    try:
-        result = allergy.write_to_db()
-    except Sqlite_error as e:
-        flash(str(e))
-        result = False
+    # Construct object to be written
+    if obj_type == "allergies":
+        obj = Allergy(name, db, id)
+    elif obj_type == "ingredient_categories":
+        obj = IngredientCategory(name, db, id)
+    elif obj_type == "ingredients":
+        category_id = request.form.get("category_id")
+        category = IngredientCategory.from_db(db=db, id=category_id)
+        allergy_ids = request.form.getlist("allergies")
+        allergies = {Allergy.from_db(db=db, id=id) for id in allergy_ids}
 
-    if result:
-        flash("Changes saved successfully!")
-    else:
-        flash("Something went wrong :(", category="danger")
+        obj = Ingredient(name, category, allergies, db, id)
+    elif obj_type == "recipes":
+        instructions = request.form.get("instructions")
 
-    return redirect("admin/allergies")
-
-
-@app.route("/admin/ingredient_categories", methods=["GET", "POST"])
-@login_required
-@admin_required
-def admin_ingredient_categories():
-    """Show ingredient category admin page for GET.
-    Write new ingredient category to DB for POST.
-    """
-    # User reached route via GET (as by clicking a link or via redirect)
-    if request.method == "GET":
-        rows = IngredientCategory.get_summary(db, name_sort=True)
-        return render_template("ingredient_categories.html", rows=rows)
-
-    # User reached route via POST (as by submitting a form via POST)
-    # Fetch attributes for the ingredient category from the form
-    name = request.form.get("name")
-    try:
-        id = int(request.form.get("id"))
-        if not id:
-            id = None
-    except:
-        id = None
-
-    # Construct the new IngredientCategory object and commit changes to DB
-    ing_category = IngredientCategory(name, db, id)
-    try:
-        result = ing_category.write_to_db()
-    except Sqlite_error as e:
-        flash(str(e))
-        result = False
-
-    if result:
-        flash("Changes saved successfully!")
-    else:
-        flash("Something went wrong :(", category="danger")
-
-    return redirect("admin/ingredient_categories")
-
-
-@app.route("/admin/ingredients", methods=["GET", "POST"])
-@login_required
-@admin_required
-def admin_ingredients():
-    """Show ingredients admin page for GET.
-    Write new ingredients to DB for POST.
-    """
-    # User reached route via GET (as by clicking a link or via redirect)
-    if request.method == "GET":
-        rows = Ingredient.get_summary(db, name_sort=True)
-        categories = db.get_rows("ingredient_categories", order_by="name ASC")
-        allergies = db.get_rows("allergies", order_by="name ASC")
-
-        return render_template("ingredients.html", rows=rows, categories=categories, allergies=allergies)
-
-    # User reached route via POST (as by submitting a form via POST)
-    # Fetch attributes for the ingredient from the form
-    name = request.form.get("name")
-    try:
-        id = int(request.form.get("id"))
-        if not id:
-            id = None
-    except:
-        id = None
-
-    category_id = request.form.get("category_id")
-    category = IngredientCategory.from_db(db=db, id=category_id)
-    allergy_ids = request.form.getlist("allergies")
-    allergies = {Allergy.from_db(db=db, id=id) for id in allergy_ids}
-
-    # Construct the new Ingredient object and commit changes to DB
-    ingredient = Ingredient(name, category, allergies, db, id)
-    try:
-        result = ingredient.write_to_db()
-    except Sqlite_error as e:
-        flash(str(e))
-        result = False
-
-    if result:
-        flash("Changes saved successfully!")
-    else:
-        flash("Something went wrong :(", category="danger")
-
-    return redirect("admin/ingredients")
-
-
-@app.route("/admin/recipes", methods=["GET", "POST"])
-@login_required
-@admin_required
-def admin_recipes():
-    """Show recipes admin page for GET.
-    Write new recipes to DB for POST.
-    """
-    # User reached route via GET (as by clicking a link or via redirect)
-    if request.method == "GET":
-        # get recipe list for the table
-        rows = Recipe.get_summary(db, name_sort=True)
-        ingredients = db.get_rows("ingredients")
-
-        return render_template("recipes.html", rows=rows, ingredients=ingredients)
-
-    # User reached route via POST (as by submitting a form via POST)
-    # Fetch attributes for the recipe from the form
-    name = request.form.get("name")
-    try:
-        id = int(request.form.get("id"))
-        if not id:
-            id = None
-    except:
-        id = None
-
-    instructions = request.form.get("instructions")
-
-    contents = set()
-    try:
-        form_contents = json.loads(request.form.get("contents"))
-    except:
-        form_contents = None
-
-    for fc in form_contents:
-        ingredient = Ingredient.from_db(db=db, id=fc["ingredient_id"])
-
+        contents = set()
         try:
-            amount = float(fc["amount"])
+            form_contents = json.loads(request.form.get("contents"))
         except:
-            amount = 0
+            form_contents = None
+        for fc in form_contents:
+            ingredient = Ingredient.from_db(db=db, id=fc["ingredient_id"])
+            try:
+                amount = float(fc["amount"])
+            except KeyError:
+                amount = 0
+            units = fc["units"] if fc["units"] != "" else None
 
-        units = fc["units"]
-        if fc["units"] == "":
-            units = None
+            contents.add(Content(ingredient, amount, units))
 
-        contents.add(Content(ingredient, amount, units))
+        obj = Recipe(name, instructions, contents, db, id)
 
-    # Construct the new Recipe object and commit changes to DB
-    recipe = Recipe(name, instructions, contents, db, id)
+        # Define function to be called only if object is written to DB successfully
+        def if_written():
+            # Apply image changes to the filesystem
+            filename = str(obj.id) + ".jpg"
+            if request.form.get("image-delete"):
+                # Current image is to be deleted if exists
+                try:
+                    os.remove(os.path.join(app.config["RECIPE_IMG_PATH"], filename))
+                except FileNotFoundError:
+                    pass
+            else:
+                # New image is to be saved
+                image = request.files.get("image")
+                if image:
+                    extension = image.filename.split(".").pop()
+                    if extension in ALLOWED_IMG_EXTENSIONS:
+                        image.save(os.path.join(app.config["RECIPE_IMG_PATH"], filename))
+                    else:
+                        flash("Only .jpg, .jpeg images allowed", category=danger)
+    elif obj_type == "users":
+        obj = User.from_db(db, id)
+        obj.is_admin = request.form.get("is_admin")
+        obj.name = request.form.get("name")
+    else:
+        return ("Object type not found")
+
+
     try:
-        result = recipe.write_to_db()
-    except Sqlite_error as e:
-        flash(str(e))
+        result = obj.write_to_db()
+    except:
         result = False
 
     if result:
         flash("Changes saved successfully!")
-    else:
-        flash("Something went wrong :(", category="danger")
-
-    # Apply image changes to the filesystem
-    filename = str(recipe.id) + ".jpg"
-    if request.form.get("image-delete"):
-        # Current image is to be deleted if exists
         try:
-            os.remove(os.path.join(app.config["RECIPE_IMG_PATH"], filename))
-        except FileNotFoundError:
+            if_written()
+        except UnboundLocalError:
             pass
     else:
-        # New image is to be saved
-        image = request.files.get("image")
-        if image:
-            extension = image.filename.split(".").pop()
-            if extension in ALLOWED_IMG_EXTENSIONS:
-                image.save(os.path.join(app.config["RECIPE_IMG_PATH"], filename))
-            else:
-                flash("Only .jpg, .jpeg images allowed", category=danger)
+        flash("Something went wrong :(", category="danger")
 
-    return redirect("admin/recipes")
+    return redirect("admin/" + obj_type)
 
 
-@app.route("/account", methods=["GET", "POST"])
+@app.route("/admin/remove/<string:obj_type>", methods=["GET", "POST"])
 @login_required
-def account():
+@admin_required
+def admin_remove(obj_type):
+    """Remove an object from DB"""
+    if request.method == "POST" and request.form:
+        id = request.form.get("id")
+    if request.method  == "GET" and request.args:
+        id = request.args.get("id")
+    try:
+        id = int(id)
+    except:
+        id = None
+
+    if not id:
+        return("Missing or invalid params")
+
+    d = {
+        "allergies"            : lambda db, id: Allergy.from_db(db, id).remove_from_db(),
+        "ingredient_categories": lambda db, id: IngredientCategory.from_db(db, id).remove_from_db(),
+        "ingredients"          : lambda db, id: Ingredient.from_db(db, id).remove_from_db(),
+        "recipes"              : lambda db, id: Recipe.from_db(db, id).remove_from_db(),
+        "users"                : lambda db, id: User.from_db(db, id).remove_from_db(),
+    }
+    try:
+        d[obj_type](db, id)
+        # If a recipe was removed remove its image
+        if obj_type == "recipes":
+            filename = str(id) + ".jpg"
+            try:
+                os.remove(os.path.join(app.config["RECIPE_IMG_PATH"], filename))
+            except FileNotFoundError:
+                pass
+        flash("Entry deleted successfully!")
+    except KeyError:
+        return ("Object type not found")
+    except DBError:
+        flash("Cannot delete entry with dependents (referenced by other entries)!", category="danger")
+    except:
+        flash("Something went wrong :(", category="danger")
+
+    return redirect("admin/" + obj_type)
+
+
+@app.route("/account/<string:form>", methods=["POST"])
+@app.route("/account", defaults={"form":None}, methods=["GET"])
+@login_required
+def account(form):
     """Show account settings for GET.
     Write new user settings to  DB for POST.
     """
-    # User reached route via GET (as by clicking a link or via redirect)
-    if request.method == "GET":
+    user = User.from_db(db=db, id=session.get("user_id"))
+
+    # User reached "/account" route via GET (as by clicking a link or via redirect)
+    if request.method == "GET" and not form:
         allergies = db.get_rows("allergies", order_by="name ASC")
-        rows = db.get_rows("user_allergies", user_id=session.get("user_id"))
-        user_allergies = {x["allergy_id"] for x in rows}
+        user_allergies = {x.id for x in user.allergies}
 
         return render_template("account.html", allergies=allergies, user_allergies=user_allergies)
 
-    # User reached route via POST (as by submitting a form via POST)
-    # Fetch User object from DB and replace its allergies set
-    user = User.from_db(db=db, id=session.get("user_id"))
-    allergy_ids = request.form.getlist("allergies")
-    allergies = {Allergy.from_db(db, id) for id in allergy_ids}
-    user.allergies = allergies
+    # User reached "/account/<form>" route via POST (as by submitting a form via POST)
+    if form == "allergies":
+        allergy_ids = request.form.getlist("allergies")
+        allergies = {Allergy.from_db(db, id) for id in allergy_ids}
+        user.allergies = allergies
+    elif form == "password":
+        current_password = request.form.get("current_password")
+        new_password = request.form.get("new_password")
+        confirmation = request.form.get("confirmation")
+
+        if not current_password:
+            flash("Must provide valid current password", category="danger")
+            return redirect("account")
+        if not all([new_password, confirmation]):
+            flash("Must provide new password and repeat it", category="danger")
+            return redirect("account")
+        if not new_password == confirmation:
+            flash("New passwords don't match", category="danger")
+            return redirect("account")
+        if not check_password_hash(user.password_hash, current_password):
+            flash("Incorrect current password", category="danger")
+            return redirect("account")
+
+        user.password_hash = generate_password_hash(new_password)
 
     # Commit the user changes to DB
     try:
         result = user.write_to_db()
-    except Sqlite_error as e:
-        flash(str(e))
+    except:
         result = False
 
     if result:
@@ -330,11 +298,14 @@ def account():
 
 
 @app.route("/login", methods=["GET", "POST"])
-def login():
+def login(first=False):
     """Log user in"""
 
     # Forget any user_id
     session.clear()
+
+    if first:
+        flash("We recommend to visit the 'Account' page if you have any food allergies")
 
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
@@ -413,12 +384,11 @@ def register():
         # Commit the user changes to DB
         try:
             result = user.write_to_db()
-        except Sqlite_error as e:
-            flash(str(e))
+        except:
             result = False
 
         # Log the user in
-        return login()
+        return login(first=True)
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
@@ -435,7 +405,7 @@ def action():
     if request.method == "POST" and request.form:
         command = request.form.get("command")
         id = request.form.get("id")
-    if request.method  == "GET"and request.args:
+    if request.method  == "GET" and request.args:
         command = request.args.get("command").lower()
         id = request.args.get("id")
     try:
@@ -467,7 +437,7 @@ def get_JSON():
     if request.method == "POST" and request.form:
         obj_type = request.form.get("obj_type")
         id = request.form.get("id")
-    if request.method  == "GET"and request.args:
+    if request.method  == "GET" and request.args:
         obj_type = request.args.get("obj_type").lower()
         id = request.args.get("id")
     try:

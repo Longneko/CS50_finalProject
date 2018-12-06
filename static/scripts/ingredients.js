@@ -4,7 +4,7 @@ form_set_new = function(form_id){
     old_form_set_new(form_id);
 
     var form_elements = $("[form="+ form_id + "]");
-    var category_select = set_default(form_elements.filter("[name=category_id]"));
+    var category_select = form_elements.filter("[name=category_id]");
     var checkboxes = form_elements.filter('input[type=checkbox]');
 
     set_default(category_select);

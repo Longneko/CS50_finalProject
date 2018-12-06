@@ -5,6 +5,10 @@ class Allergy(DBEntry):
     such ingredients.
     """
     table_main = "allergies"
+    associations = [
+        ("ingredient_allergies","allergy_id", False),
+        ("user_allergies","allergy_id", False)
+    ]
 
     @classmethod
     def get_summary(cls, db, name_sort=False):

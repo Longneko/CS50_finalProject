@@ -2,17 +2,33 @@
 
 {% block main %}
     {% set page = request.path[request.path.rfind("/")+1:] %}
-    {% set form_id="form-db_write" %}
-    <form id="{{ form_id }}" action="/{{ page }}" method="post">
-        <label for="allergies">Allergies</label>
-        <div class="border" id="allergies">
-            {% for a in allergies %}
-                <label>
-                    <input form="{{ form_id }}" class="ml-2" type="checkbox" id="allergies-allergy_{{ a["id"] }}" name="allergies" value="{{ a['id'] }}" data-default=false {{ "checked" if a["id"] in user_allergies }}>
-                    {{ a["name"] }}
-                </label>
-            {% endfor %}
+    {% set form_id="form-password" %}
+    <form id="{{ form_id }}" action="/{{ page }}/password" method="post">
+        <div class="border my-2 py-2" id="password">
+            <label for="password"><h5>Change password</h5></label><br>
+            <div class="form-group">
+                <input form="{{ form_id }}" class="form-control mb-1" name="current_password" placeholder="Current password" type="password"/><br>
+            </div>
+            <div class="form-group">
+                <input form="{{ form_id }}" class="form-control mb-1" name="new_password" placeholder="New password" type="password"/><br>
+                <input form="{{ form_id }}" class="form-control" name="confirmation" placeholder="Repeat password" type="password"/>
+            </div>
+            <input type="submit" class="btn btn-primary" value="Change">
         </div>
-        <input type="submit" class="btn btn-primary" value="Save">
+    </form>
+    {% set form_id="form-allergies" %}
+    <form id="{{ form_id }}" action="/{{ page }}/allergies" method="post">
+        <div class="border my-2 py-2" id="allergies">
+            <label for="allergies"><h5>Allergies</h5></label><br>
+                <div>
+                    {% for a in allergies %}
+                        <label>
+                            <input form="{{ form_id }}" class="ml-2" type="checkbox" id="allergies-allergy_{{ a["id"] }}" name="allergies" value="{{ a['id'] }}" data-default=false {{ "checked" if a["id"] in user_allergies }}>
+                            {{ a["name"] }}
+                        </label>
+                    {% endfor %}
+                </div>
+            <input type="submit" class="btn btn-primary" value="Save">
+        </div>
     </form>
 {% endblock %}

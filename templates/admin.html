@@ -35,29 +35,30 @@
         }
     </style>
 
-    <div class="btn-group btn-group-lg" role="group" aria-label="Manage Elements">
+    <div class="btn-group btn-group-lg" role="group" aria-label="Manage Entries">
         <a type="button" class="btn btn-secondary" href="/admin/allergies">Allergies</a>
         <a type="button" class="btn btn-secondary" href="/admin/ingredient_categories">Ing. Categories</a>
         <a type="button" class="btn btn-secondary" href="/admin/ingredients">Ingredients</a>
         <a type="button" class="btn btn-secondary" href="/admin/recipes">Recipes</a>
+        <a type="button" class="btn btn-secondary" href="/admin/users">Users</a>
     </div>
     <br>
     <br>
     {% if not page == "admin" %}
-        {% block modal %}
+        {% block modal_edit %}
             <!-- Modal edit window-->
             {% set form_id="form-db_write" %}
-            <div class="modal fade" id="modal-form" tabindex="-1" role="dialog" aria-labelledby="modal-label-{{ form_id }}" aria-hidden="true">
+            <div class="modal fade" id="modal-form_write" tabindex="-1" role="dialog" aria-labelledby="modal-label-{{ form_id }}" aria-hidden="true">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="modal-label-{{ form_id }}">Edit element</h5>
+                            <h5 class="modal-title" id="modal-label-{{ form_id }}">Edit entry</h5>
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
                         <div class="modal-body">
-                            {% block form scoped %}
+                            {% block form_write scoped %}
                                 <form id="{{ form_id }}" action="/admin/{{ page }}" method="post" enctype="multipart/form-data">
                                     <div class="form-group">
                                         <input form="{{ form_id }}" type="number" id="form-id" name="id" value="" hidden>
@@ -71,7 +72,39 @@
                         </div>
                         <div class="modal-footer">
                             <label class="btn btn-secondary" data-dismiss="modal">Close</label>
-                            <label for="form-db_write-submit" class="btn btn-primary" id="modal-edit-save">Save</label>
+                            <label for="form-db_write-submit" class="btn btn-primary" id="modal-db_write-save">Save</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endblock %}
+
+        {% block modal_remove %}
+            <!-- Modal remove window-->
+            {% set form_id="form-db_remove" %}
+            <div class="modal fade" id="modal-form_remove" tabindex="-1" role="dialog" aria-labelledby="modal-label-{{ form_id }}" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modal-label-{{ form_id }}">Remove entry</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            {% block form_remove scoped %}
+                                <form id="{{ form_id }}" action="/admin/remove/{{ page }}" method="post" enctype="multipart/form-data">
+                                    <div class="form-group">
+                                        <input form="{{ form_id }}" type="number" id="form-id" name="id" value="" hidden>
+                                    </div>
+                                    <input form="{{ form_id }}" type="submit" class="hidden" id="form-db_remove-submit" hidden/>
+                                </form>
+                            {% endblock %}
+                            <p>Are you sure you want to delete this entry?</p>
+                        </div>
+                        <div class="modal-footer">
+                            <label class="btn btn-secondary" data-dismiss="modal">No</label>
+                            <label for="form-db_remove-submit" class="btn btn-primary" id="modal-db_remove-yes">Yes</label>
                         </div>
                     </div>
                 </div>
@@ -80,7 +113,7 @@
 
         {% block create %}
             <p>
-                <button type="button" class="btn btn-success trigger-form-new" data-toggle="modal" data-target="#modal-form">New</button>
+                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modal-form_write">New</button>
             </p>
         {% endblock %}
 
@@ -90,13 +123,13 @@
                     <thead>
                         <tr>
                             {% for key in rows[0].keys() %}
-                                <th scope="col">{{ key|title }}</th>
+                                <th scope="col">{{ key|replace("_", " ")|title }}</th>
                             {% endfor %}
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for row in rows %}
+                        {% for row in rows|sort(attribute="name") %}
                             <tr>
                                 {% for key in row.keys() %}
                                     {% block summary_td scoped %}
@@ -105,10 +138,8 @@
                                 {% endfor %}
                                 <td>
                                     <!-- Button trigger modal -->
-                                    <span class="pseudo-href" data-toggle="modal" data-target="#modal-form" data-obj_id="{{ row["id"] }}">
-                                        edit
-                                    </span>
-                                    delete
+                                    <span class="pseudo-href" data-toggle="modal" data-target="#modal-form_write" data-obj_id="{{ row["id"] }}">edit</span>
+                                    <span class="pseudo-href" data-toggle="modal" data-target="#modal-form_remove" data-obj_id="{{ row["id"] }}">delete</span>
                                 </td>
                             </tr>
                         {% endfor %}

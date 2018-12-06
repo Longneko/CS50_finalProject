@@ -19,6 +19,9 @@ switch(page) {
     case "recipes":
         obj_type = "recipe";
         break;
+    case "users":
+        obj_type = "user";
+        break;
 }
 
 // Set form element to default state based on its type and data-default if provided
@@ -91,19 +94,31 @@ function form_set_edit(form_id, id, data=null) {
 
 $(document).ready(function() {
     // On new popluate the form with default values
-    $("[data-target^='#modal-form']").click(function() {
+    $("[data-target^='#modal-form_write']:not([data-obj_id])").click(function() {
         var modal_id = $(this).data("target");
         var form_id = $(modal_id).find("form").attr("id")
         form_set_new(form_id);
     });
 
     // On edit popluate form with values of the entry under editing
-    $("[data-target^='#modal-form']").click(function() {
+    $("[data-target^='#modal-form_write']").click(function() {
         var modal_id = $(this).data("target");
         var form_id = $(modal_id).find("form").attr("id")
 
         var id = $(this).data("obj_id");
         form_set_edit(form_id, id);
+    });
+
+    // On remove popluate form with id of the entry to be removed
+    $("[data-target^='#modal-form_remove']").click(function() {
+        var modal_id = $(this).data("target");
+        var form_id = $(modal_id).find("form").attr("id")
+        var obj_id = $(this).data("obj_id")
+
+        $("[form=" + form_id + "][name=id]").val(obj_id)
+
+        // var id = $(this).data("obj_id");
+        // form_set_edit(form_id, id);
     });
 
     // Focus on Name field when modal window is shown

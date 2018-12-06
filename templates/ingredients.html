@@ -1,7 +1,5 @@
 {% extends "admin.html" %}
 
-{% import "admin.html" as admin %}
-
 {% block title %}
     Ingredients
 {% endblock %}
@@ -12,7 +10,7 @@
     <script src="/static/scripts/ingredients.js" type="text/javascript"></script>
 {% endblock %}
 
-{% block form %}
+{% block form_write %}
     {{ super() }}
     <div class="form-group">
         <label for="select-category">Category</label>
@@ -27,7 +25,7 @@
         Allergies
     </button>
     <div class="collapse border" id="allergies">
-        {% for a in allergies %}
+        {% for a in allergies|sort(attribute="name") %}
             <label>
                 <input form="{{ form_id }}" class="ml-2" type="checkbox" id="allergies-allergy_{{ a['id'] }}" name="allergies" value="{{ a['id'] }}" data-default=false>
                 {{ a["name"] }}

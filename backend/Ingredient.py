@@ -7,6 +7,10 @@ from backend.IngredientCategory import IngredientCategory
 class Ingredient(DBEntry):
     """An ingredient that can be used a recipe"""
     table_main = "ingredients"
+    associations = [
+        ("recipe_contents","ingredient_id", False),
+        ("ingredient_allergies","ingredient_id", True)
+    ]
 
     def __init__(self, name, category, allergies=set(), db=None, id=None):
         """Constructor. Returns functional object.
@@ -57,7 +61,7 @@ class Ingredient(DBEntry):
 
         # Remembering id assigned by the DB
         new_row_id = (self.db.c.lastrowid,)
-        self.db.c.execute(f'SELECT id FROM {table_main} WHERE rowid = ?', new_row_id)
+        self.db.c.execute(f'SELECT id FROM "{table_main}" WHERE rowid = ?', new_row_id)
         row = self.db.c.fetchone()
         id = row["id"]
 
@@ -200,7 +204,9 @@ class Ingredient(DBEntry):
         if name_sort:
             summary.sort(key=lambda x: x["name"].lower())
             for row in summary:
-                row["allergies"].sort(key=str.lower)
-
+                try:
+                    row["allergies"].sort(key=str.lower)
+                except KeyError:
+                    pass
 
         return summary

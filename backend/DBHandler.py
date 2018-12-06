@@ -3,11 +3,9 @@ import sqlite3
 DEFAULT_DB_PATH = "backend/food.db"
 
 class DBHandler(object):
-    """Handles storage and retrieval of within a DB.
-
-    :param db_path: A string, path to the target DB.
-    """
+    """Handles storage and retrieval of within a DB"""
     def __init__(self, db_path=DEFAULT_DB_PATH):
+        """ :param db_path: A string, path to the target DB"""
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.c = self.conn.cursor()
@@ -20,70 +18,70 @@ class DBHandler(object):
     def create_schema(self):
         """Create the required schema in an empty DB"""
         self.c.executescript("""
-                CREATE TABLE ingredient_categories(
-                  id INTEGER PRIMARY KEY,
-                  name TEXT NOT NULL UNIQUE
-                );
+            CREATE TABLE ingredient_categories(
+              id INTEGER PRIMARY KEY,
+              name TEXT NOT NULL UNIQUE
+            );
 
-                CREATE TABLE ingredients(
-                  id INTEGER PRIMARY KEY,
-                  name TEXT NOT NULL UNIQUE,
-                  category_id INTEGER NOT NULL,
-                  FOREIGN KEY (category_id) REFERENCES ingredient_categories(id)
-                );
+            CREATE TABLE ingredients(
+              id INTEGER PRIMARY KEY,
+              name TEXT NOT NULL UNIQUE,
+              category_id INTEGER NOT NULL,
+              FOREIGN KEY (category_id) REFERENCES ingredient_categories(id)
+            );
 
-                CREATE TABLE allergies(
-                  id INTEGER PRIMARY KEY,
-                  name TEXT NOT NULL UNIQUE
-                );
+            CREATE TABLE allergies(
+              id INTEGER PRIMARY KEY,
+              name TEXT NOT NULL UNIQUE
+            );
 
-                CREATE TABLE ingredient_allergies(
-                  ingredient_id INTEGER NOT NULL,
-                  allergy_id INTEGER NOT NULL,
-                  PRIMARY KEY (allergy_id, ingredient_id),
-                  FOREIGN KEY (allergy_id) REFERENCES allergies(id),
-                  FOREIGN KEY (ingredient_id) REFERENCES ingredients(id)
-                );
+            CREATE TABLE ingredient_allergies(
+              ingredient_id INTEGER NOT NULL,
+              allergy_id INTEGER NOT NULL,
+              PRIMARY KEY (allergy_id, ingredient_id),
+              FOREIGN KEY (allergy_id) REFERENCES allergies(id),
+              FOREIGN KEY (ingredient_id) REFERENCES ingredients(id)
+            );
 
-                CREATE TABLE recipes(
-                  id INTEGER PRIMARY KEY,
-                  name TEXT NOT NULL UNIQUE,
-                  instructions TEXT
-                );
+            CREATE TABLE recipes(
+              id INTEGER PRIMARY KEY,
+              name TEXT NOT NULL UNIQUE,
+              instructions TEXT
+            );
 
-                CREATE TABLE recipe_contents(
-                  recipe_id INTEGER NOT NULL,
-                  ingredient_id INTEGER NOT NULL,
-                  amount INTEGER NOT NULL,
-                  units TEXT DEFAULT NULL,
-                  PRIMARY KEY (recipe_id, ingredient_id),
-                  FOREIGN KEY (recipe_id) REFERENCES recipes(id),
-                  FOREIGN KEY (ingredient_id) REFERENCES ingredients(id)
-                );
+            CREATE TABLE recipe_contents(
+              recipe_id INTEGER NOT NULL,
+              ingredient_id INTEGER NOT NULL,
+              amount INTEGER NOT NULL,
+              units TEXT DEFAULT NULL,
+              PRIMARY KEY (recipe_id, ingredient_id),
+              FOREIGN KEY (recipe_id) REFERENCES recipes(id),
+              FOREIGN KEY (ingredient_id) REFERENCES ingredients(id)
+            );
 
-                CREATE TABLE users(
-                  id INTEGER PRIMARY KEY,
-                  name TEXT NOT NULL UNIQUE,
-                  password_hash TEXT NOT NULL,
-                  is_admin INTEGER NOT NULL DEFAULT 0
-                );
+            CREATE TABLE users(
+              id INTEGER PRIMARY KEY,
+              name TEXT NOT NULL UNIQUE,
+              password_hash TEXT NOT NULL,
+              is_admin INTEGER NOT NULL DEFAULT 0
+            );
 
-                CREATE TABLE user_allergies(
-                  user_id INTEGER NOT NULL,
-                  allergy_id INTEGER NOT NULL,
-                  PRIMARY KEY (allergy_id, user_id),
-                  FOREIGN KEY (allergy_id) REFERENCES allergies(id),
-                  FOREIGN KEY (user_id) REFERENCES users(id)
-                );
+            CREATE TABLE user_allergies(
+              user_id INTEGER NOT NULL,
+              allergy_id INTEGER NOT NULL,
+              PRIMARY KEY (allergy_id, user_id),
+              FOREIGN KEY (allergy_id) REFERENCES allergies(id),
+              FOREIGN KEY (user_id) REFERENCES users(id)
+            );
 
-                CREATE TABLE user_meals(
-                  user_id INTEGER,
-                  recipe_id INTEGER,
-                  PRIMARY KEY (user_id, recipe_id)
-                  FOREIGN KEY (user_id) REFERENCES users(id),
-                  FOREIGN KEY (recipe_id) REFERENCES recipes(id)
-                );
-                """)
+            CREATE TABLE user_meals(
+              user_id INTEGER,
+              recipe_id INTEGER,
+              PRIMARY KEY (user_id, recipe_id)
+              FOREIGN KEY (user_id) REFERENCES users(id),
+              FOREIGN KEY (recipe_id) REFERENCES recipes(id)
+            );
+            """)
 
         self.conn.commit()
 
@@ -143,6 +141,12 @@ class DBHandler(object):
         rows = self.c.fetchall()
 
         return rows
+
+
+class DBError(Exception):
+    def __init__(self, message, params=None):
+        super().__init__(message)
+        self.params = params
 
 
 # DB object interpolation taken from Martijn Pieters's answer here:

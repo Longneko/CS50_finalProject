@@ -1,6 +1,6 @@
 import json
 import inspect
-from collections import UserDict
+import sqlite3
 
 import backend.DBHandler
 
@@ -9,10 +9,19 @@ class DBEntry(object):
     """An abstract object entry in a DB with mandatory id and a name fields.
     Should only be used as a base class and on its own.
 
-    :attr table_main: A string. Name of the table where class object entries are stored in DB.
-        Is set to None for DBEntry since this is an abstract and is not stored in DB.
+    :attr table_main: A string. An unshielded name of the table where class object entries are
+        stored in DB.
+    :attr associations: A list of (table, column, deletable) tuples, where:
+        table - a string. Unshielded name of an association table
+        column - a string. Unshielded name of the foreign key column referencing this object
+        deletable - a boolean. If True, rows referencing this object in the table will be deleted
+            when deleting object in DB. Otherwise, presence of such rows during deletion leads to
+            an error.
+
+    Both attributes populated by None values since DBEntry is an abstract and is not stored in DB.
     """
     table_main = None
+    associations = [(None,None, None)]
 
     def __init__(self, name, db=None, id=None):
         """Constructor. Returns functional object.
@@ -130,7 +139,7 @@ class DBEntry(object):
         self.db.c.execute(f'INSERT INTO "{table_main}" (name) VALUES (?)', allergy)
 
         new_row_id = (self.db.c.lastrowid,)
-        self.db.c.execute(f"SELECT id FROM {table_main} WHERE rowid = ?", new_row_id)
+        self.db.c.execute(f'SELECT id FROM "{table_main}" WHERE rowid = ?', new_row_id)
         row = self.db.c.fetchone()
 
         return row["id"]
@@ -141,6 +150,41 @@ class DBEntry(object):
         allergy = (self.name, self.id)
         self.db.c.execute(f'UPDATE "{table_main}" SET name = ? WHERE id = ?', allergy)
         return self.db.c.rowcount
+
+    def remove_from_db(self):
+        """Remove entry from DB. Attempting to delete object referenced by an object lower in the
+        hierarchy will lead to an error.
+        """
+        needle = (self.id,)
+        for assoc in self.associations:
+            table = to_db_obj_name(assoc[0])
+            column = to_db_obj_name(assoc[1])
+            deletable = assoc[2]
+            if deletable:
+                query = f'DELETE FROM "{table}" WHERE "{column}" = ?'
+                self.db.c.execute(query, needle)
+            else:
+                query = f'SELECT COUNT(*) as count FROM "{table}" WHERE "{column}" = ?'
+                references = self.db.c.execute(query, needle).fetchone()["count"]
+                if references:
+                    msg = (
+                        "Could not delete object. There are still {0} non-deletable references "
+                        "in the {1} table"
+                        ).format(references, table)
+                    raise backend.DBHandler.DBError(msg)
+
+        table_main = to_db_obj_name(self.table_main)
+        needle = (self.id,)
+        query = f'DELETE FROM "{table_main}" WHERE id = ?'
+        try:
+            self.db.c.execute(query, needle)
+        except sqlite3.Error as err:
+            if "FOREIGN KEY constraint failed" in str(err):
+                raise RuntimeError("Could not delete, one or more dependencies still exist")
+            else:
+                raise err
+
+        self.db.conn.commit()
 
     def toJSONifiable(self):
         """Return a JSONifiable dictionary of the object's attributes. Omits name mangled (__attr)

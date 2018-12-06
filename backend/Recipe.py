@@ -7,6 +7,10 @@ from backend.Ingredient import Ingredient
 class Recipe(DBEntry):
     """A recipe of a dish. Consists of ingredients with optional amount (in optional units)."""
     table_main = "recipes"
+    associations = [
+        ("user_meals","recipe_id", False),
+        ("recipe_contents","recipe_id", True)
+    ]
 
     def __init__(self, name, instructions="", contents=set(), db=None, id=None):
         """Constructor. Returns functional object.
@@ -61,7 +65,7 @@ class Recipe(DBEntry):
 
         # Remembering id assigned by the DB
         new_row_id = (self.db.c.lastrowid,)
-        self.db.c.execute(f'SELECT id FROM {table_main} WHERE rowid = ?', new_row_id)
+        self.db.c.execute(f'SELECT id FROM "{table_main}" WHERE rowid = ?', new_row_id)
         row = self.db.c.fetchone()
         id = row["id"]
 
@@ -223,7 +227,10 @@ class Recipe(DBEntry):
         if name_sort:
             summary.sort(key=lambda x: x["name"].lower())
             for row in summary:
-                row["contents"].sort(key=lambda x: x["ingredient"].lower())
+                try:
+                    row["contents"].sort(key=lambda x: x["ingredient"].lower())
+                except KeyError:
+                    pass
 
 
         return summary

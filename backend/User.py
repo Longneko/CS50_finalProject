@@ -18,6 +18,10 @@ class User(DBEntry):
     :param id: Inherits from DBEntry.
     """
     table_main = "users"
+    associations = [
+        ("user_meals","user_id", True),
+        ("user_allergies","user_id", True)
+    ]
 
     # meals are not called recipes because it is planned for meals to eventually have extended
     # functional like multiple helpings per recipe, etc.
@@ -68,7 +72,7 @@ class User(DBEntry):
 
         # Remembering id assigned by the DB
         new_row_id = (self.db.c.lastrowid,)
-        self.db.c.execute(f'SELECT id FROM {table_main} WHERE rowid = ?', new_row_id)
+        self.db.c.execute(f'SELECT id FROM "{table_main}" WHERE rowid = ?', new_row_id)
         row = self.db.c.fetchone()
         id = row["id"]
 
@@ -271,10 +275,7 @@ class User(DBEntry):
                     finished = True
 
 
-        # Set dependents currently non-existent
-        for row in summary:
-            row["dependents"] = 0
-
+        # dependents currently non-existent
 
         if name_sort:
             summary.sort(key=lambda x: x["name"].lower())

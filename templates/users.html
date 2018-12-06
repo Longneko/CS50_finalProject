@@ -1,0 +1,27 @@
+{% extends "admin.html" %}
+
+{% block title %}
+    Users
+{% endblock %}
+
+{% block app_scripts %}
+    <!-- JavaScript for this page -->
+    {{ super() }}
+    <script src="/static/scripts/users.js" type="text/javascript"></script>
+{% endblock %}
+
+{% block form_write %}
+    {{ super() }}
+    <div class="form-group">
+        <label>
+            Is admin
+            <input form="{{ form_id }}" type="checkbox" id="is_admin" name="is_admin" data-default=false>
+        </label>
+    </div>
+{% endblock %}
+
+{% block create %}
+    <p>
+        <button type="button" class="btn btn-success" disabled>New</button>
+    </p>
+{% endblock %}
