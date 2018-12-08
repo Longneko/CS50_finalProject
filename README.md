@@ -18,7 +18,7 @@ Aside from the end-user intended experience, this app also provides an admin UI 
   - End-user UI: registration, login, account settings editing (allergies only atm)
   - End-user UI: displaying and managing user's meal plans
 
-## Roadmap:
+## Roadmap (maybe):
 (not necessarily in that order)
 * Web application:
   - Admin UI: managing users' meal related data
