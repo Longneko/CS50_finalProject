@@ -16,7 +16,7 @@ from backend.Recipe import Recipe, Content
 from backend.User import User
 from backend.DBHandler import DBHandler, DBError
 from backend.DBEntry import FoodEncoder
-from helpers import apology, login_required, admin_required, is_content, categories, nl2br
+from helpers import apology, login_required, admin_required, is_content, categories, nl2br, username_valid
 
 # Configure application
 app = Flask(__name__)
@@ -310,10 +310,13 @@ def login(first=False):
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
 
-        # Ensure username was submitted
-        name = request.form.get("username")
+        # Ensure valid username was submitted
+        try:
+            name = username_valid(request.form.get("username"))
+        except TypeError:
+            name = None
         if not name:
-            return apology("must provide username", 403)
+            return apology("must provide valid username", 403)
 
         # Ensure password was submitted
         password = request.form.get("password")
@@ -358,10 +361,13 @@ def register():
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
 
-        # Ensure username was submitted
-        name = request.form.get("username")
+        # Ensure valid username was submitted
+        try:
+            name = username_valid(request.form.get("username"))
+        except TypeError:
+            name = None
         if not name:
-            return apology("must provide username")
+            return apology("must provide valid username")
 
         # Querry database and check if the username is already taken
         if User.exists_in_db(db=db, name=name):

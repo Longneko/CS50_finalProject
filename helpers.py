@@ -9,6 +9,8 @@ from jinja2 import evalcontextfilter, Markup, escape
 
 from backend.Recipe import Content
 
+VALID_USERNAME = "[a-zA-Z0-9_]+$"
+
 def apology(message, code=400):
     """Render message as an apology to user."""
     def escape(s):
@@ -46,6 +48,15 @@ def admin_required(f):
             return apology("Not found", 404)
         return f(*args, **kwargs)
     return decorated_function
+
+def username_valid(s):
+    """Return lowercased string if contains only chars allowed in usernames. Return None otherwise.
+    """
+    if re.match(VALID_USERNAME, s):
+        return s.lower()
+    return None
+
+
 
 
 # filter for Jinja
