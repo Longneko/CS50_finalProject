@@ -1,7 +1,35 @@
 {% extends "layout.html" %}
 
-{% block main %}
-    {% set page = request.path[request.path.rfind("/")+1:] %}
+{% set CHECKBOX_GRID_WIDTH = 6 %}
+{% set BOOTSTRAP_MAX_COLS = 12 %}
+
+{% set page = request.path[request.path.rfind("/")+1:] %}
+
+{% block main scoped %}
+    {% set form_id="form-allergies" %}
+    <form id="{{ form_id }}" action="/{{ page }}/allergies" method="post">
+        <div class="border my-2 py-2" id="allergies">
+            <label for="allergies"><h5>Allergies</h5></label><br>
+                <div class="container">
+                    {% for row in allergies|sort(attribute="name")|batch(CHECKBOX_GRID_WIDTH) %}
+                        <div class="row">
+                            {% for allergy in row %}
+                                {% if allergy %}
+                                <div class="col-{{ (BOOTSTRAP_MAX_COLS / CHECKBOX_GRID_WIDTH)|int }}">
+                                    <label>
+                                        <input form="{{ form_id }}" class="ml-2" type="checkbox" id="allergies-allergy_{{ allergy["id"] }}" name="allergies" value="{{ allergy['id'] }}" data-default=false {{ "checked" if allergy["id"] in user_allergies }}>
+                                        {{ allergy["name"] }}
+                                    </label>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+            <small class="form-text text-muted mb-2">Recipes containing ingredients triggering checked allergic reactions will not be offered to you. Does not affect meals already saved in your meal plan.</small>
+            <input type="submit" class="btn btn-primary" value="Save">
+        </div>
+    </form>
     {% set form_id="form-password" %}
     <form id="{{ form_id }}" action="/{{ page }}/password" method="post">
         <div class="border my-2 py-2" id="password">
@@ -14,21 +42,6 @@
                 <input form="{{ form_id }}" class="form-control" name="confirmation" placeholder="Repeat password" type="password"/>
             </div>
             <input type="submit" class="btn btn-primary" value="Change">
-        </div>
-    </form>
-    {% set form_id="form-allergies" %}
-    <form id="{{ form_id }}" action="/{{ page }}/allergies" method="post">
-        <div class="border my-2 py-2" id="allergies">
-            <label for="allergies"><h5>Allergies</h5></label><br>
-                <div>
-                    {% for a in allergies %}
-                        <label>
-                            <input form="{{ form_id }}" class="ml-2" type="checkbox" id="allergies-allergy_{{ a["id"] }}" name="allergies" value="{{ a['id'] }}" data-default=false {{ "checked" if a["id"] in user_allergies }}>
-                            {{ a["name"] }}
-                        </label>
-                    {% endfor %}
-                </div>
-            <input type="submit" class="btn btn-primary" value="Save">
         </div>
     </form>
 {% endblock %}

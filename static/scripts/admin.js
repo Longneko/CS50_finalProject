@@ -123,7 +123,6 @@ $(document).ready(function() {
 
     // Focus on Name field when modal window is shown
     $("#modal-form_write").on("shown.bs.modal", function() {
-        console.log("got here"); // DEBUG
         $(this).find("input[name=name]").focus();
     });
 });

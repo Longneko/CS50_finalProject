@@ -16,14 +16,14 @@
     <div class="col col-sm-3" id="meal-card-container_{{ id }}">
         <div class="card mb-3" id="meal-card_{{ id }}" data-meal_id={{ id }} data-accepted=true>
             <img class="card-img-top action" id="meal-card-img_{{ id }}" src="{{ RECIPE_IMG_PATH }}{{ id }}.jpg" data-default="{{ RECIPE_IMG_PATH }}{{ IMG_DEFAULT }}"
-                data-toggle="modal" data-target="#modal-meal-details" data-obj_id="{{ id }}" alt="{{ meal.name }}" onerror="img_error(this);" onclick="click_show_meal_details(this);">
+                data-toggle="modal" data-target="#modal-meal-details" data-obj_id="{{ id }}" alt="{{ meal.name }}" title="Click for details" onerror="img_error(this);" onclick="click_show_meal_details(this);">
             <div class="card-body" id="meal-card-body_{{ id }}" style="overflow-y: auto; height: 180px;">
                 <div class="mb-1" style="text-align: center;">
-                    <button type="button" class="btn btn-danger mr-1" id="meal-card-btn-remove_{{ id }}" data-obj_id={{ id }} onclick="click_card_remove(this);"><img src="{{ BTN_IMG_PATH }}button_remove.png"></button>
-                    <button type="button" class="btn btn-primary mr-1" id="meal-card-btn-reroll_{{ id }}" data-obj_id={{ id }} {{ "disabled" if accepted }} onclick="click_card_reroll(this);"><img src="{{ BTN_IMG_PATH }}button_roll.png"></button>
-                    <button type="button" class="btn btn-success" id="meal-card-btn-accept_{{ id }}" data-obj_id={{ id }} {{ "disabled" if accepted }} onclick="click_card_accept(this);"><img src="{{ BTN_IMG_PATH }}button_accept.png"></button>
+                    <button type="button" class="btn btn-danger mr-1" id="meal-card-btn-remove_{{ id }}" data-obj_id={{ id }}  title="Remove" onclick="click_card_remove(this);"><i class="fas fa-trash-alt"></i></button>
+                    <button type="button" class="btn btn-primary mr-1" id="meal-card-btn-reroll_{{ id }}" data-obj_id={{ id }} {{ "disabled" if accepted }} title="Reroll" onclick="click_card_reroll(this);"><i class="fas fa-random"></i></button>
+                    <button type="button" class="btn btn-success" id="meal-card-btn-accept_{{ id }}" data-obj_id={{ id }} {{ "disabled" if accepted }} title="Save" onclick="click_card_accept(this);"><i class="fas fa-check"></i></button>
                 </div>
-                <h5 class="card-title action" id="meal-card-header" data-toggle="modal" data-target="#modal-meal-details" data-obj_id="{{ id }}" onclick="click_show_meal_details(this);">{{ name }}</h5>
+                <h5 class="card-title action px-1" id="meal-card-header_{{ id }}" data-toggle="modal" data-target="#modal-meal-details" data-obj_id="{{ id }}" title="Click for details" onclick="click_show_meal_details(this);">{{ name }}</h5>
                 <p class="card-text" id="meal-card-categories">
                     {{ categories }}
                 </p>
@@ -96,9 +96,9 @@
             {% endfor %}
             <div class="col col col-sm-3" id="meal-card-container_add">
                 <div class="card mb-3" id="meal-card_add" data-meal_id=0>
-                    <img class="card-img-top action" id="meal-card-img_add" src="static/images/button_add.png" alt="Add more">
+                    <i class="fas fa-plus-circle action" id="meal-card-img_add" style="font-size: 16em; color: #82C91E;" alt="Add more"></i>
                     <div class="card-body" id="meal-card-body_add" style="overflow-y: auto; height: 180px;">
-                        <h5 class="card-title">Add more</h5>
+                        <h5 class="card-title action px-1" id="meal-card-header_add">Add more</h5>
                         <p class="card-text">
                             This will add a random meal based on your preferences that you can re-roll.
                         </p>
@@ -111,8 +111,8 @@
 
     {% block modal %}
         <!-- Modal meal details window-->
-        <div class="modal fade" id="modal-meal-details" tabindex="-1" role="dialog" aria-labelledby="modal-meal-details-label" aria-hidden="true">
-            <div class="modal-dialog" role="document">
+        <div class="modal fade bd-modal-lg" id="modal-meal-details" tabindex="-1" role="dialog" aria-labelledby="modal-meal-details-label" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content" id="modal-meal-details-content">
                     You should be seeing meal details instead of this text.
                 </div>

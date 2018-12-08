@@ -65,20 +65,36 @@ td {
     cursor: pointer;
 }
 
+.img-form {
+    max-width: 50%;
+}
+
 .card{
     width: 16rem;
+    height: 30rem;
 }
 
 .card-title {
     font-weight: bold;
 }
 
-.card-img-top {
-    max-width: 15rem;
-    max-height: 15rem;
-    object-fit: cover;
+.card-title:hover {
+    border-radius: 5px;
+    transition: background-color 0.5s ease;
+    background-color: orange;
 }
 
-.img-form {
-    max-width: 50%;
+.card-img-top {
+    width: 16rem;
+    height: 16rem;
+    object-fit: cover;
+    margin: auto
+}
+
+.card-body i {
+    font-size: 2em;
+}
+
+.card-body button:disabled {
+    opacity: 0.2;
 }

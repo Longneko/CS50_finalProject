@@ -221,4 +221,7 @@ $(document).ready(function() {
     $("#meal-card-img_add").click(function() {
         add_meal(active_meal_ids, ADD_CARDS_BEFORE);
     });
+    $("#meal-card-header_add").click(function() {
+        add_meal(active_meal_ids, ADD_CARDS_BEFORE);
+    });
 });

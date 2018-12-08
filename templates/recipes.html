@@ -57,8 +57,8 @@
             <input form="{{ form_id }}" type="file" id="form-image-upload" name="image" accept="image/jpeg"><br>
             <small class="form-text text-muted">Non-default images are overwritten and cannot be restored.</small>
         </div>
-        <label for="form-instructions">Instructions</label>
-        <textarea form="{{ form_id }}" class="form-control" id="form-instructions" name="instructions"></textarea>
+        <label for="form-instructions">Instructions</label><br>
+        <textarea form="{{ form_id }}" class="form-control" style="width: 90%" id="form-instructions" name="instructions" rows=10></textarea>
         <small class="form-text text-muted">Instructions should not contain the list of ingredients.</small>
     </div>
     <input form="{{ form_id }}" type="text" class="hidden" id="form-contents" name="contents" data-default=[] value="" hidden/>

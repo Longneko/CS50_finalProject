@@ -43,7 +43,7 @@ form_set_edit = function(form_id, id, data=null) {
                 id: parseInt(c["ingredient"]["id"]),
                 name: c["ingredient"]["name"],
             };
-            var amount = parseInt(c["amount"]);
+            var amount = parseFloat(c["amount"]);
             var units = c["units"];
 
             content_add(form_contents, ingredient, amount, units);

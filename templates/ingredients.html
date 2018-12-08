@@ -1,5 +1,8 @@
 {% extends "admin.html" %}
 
+{% set CHECKBOX_GRID_WIDTH = 4 %}
+{% set BOOTSTRAP_MAX_COLS = 12 %}
+
 {% block title %}
     Ingredients
 {% endblock %}
@@ -10,7 +13,7 @@
     <script src="/static/scripts/ingredients.js" type="text/javascript"></script>
 {% endblock %}
 
-{% block form_write %}
+{% block form_write scoped %}
     {{ super() }}
     <div class="form-group">
         <label for="select-category">Category</label>
@@ -25,11 +28,21 @@
         Allergies
     </button>
     <div class="collapse border" id="allergies">
-        {% for a in allergies|sort(attribute="name") %}
-            <label>
-                <input form="{{ form_id }}" class="ml-2" type="checkbox" id="allergies-allergy_{{ a['id'] }}" name="allergies" value="{{ a['id'] }}" data-default=false>
-                {{ a["name"] }}
-            </label>
-        {% endfor %}
+        <div class="container">
+            {% for row in allergies|sort(attribute="name")|batch(CHECKBOX_GRID_WIDTH) %}
+                <div class="row">
+                    {% for allergy in row %}
+                        {% if allergy %}
+                        <div class="col-{{ (BOOTSTRAP_MAX_COLS / CHECKBOX_GRID_WIDTH)|int }}">
+                            <label>
+                                <input form="{{ form_id }}" type="checkbox" id="allergies-allergy_{{ allergy['id'] }}" name="allergies" value="{{ allergy['id'] }}" data-default=false>
+                                {{ allergy["name"] }}
+                            </label>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
     </div>
 {% endblock %}
