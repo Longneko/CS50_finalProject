@@ -125,17 +125,19 @@ function update_card(card, recipe) {
 }
 
 // Reroll meal on a card
-function reroll_meal(card, exclude_ids){
+function reroll_meal(card, exclude_ids, allow_repeat=false){
     var card = $(card);
     var current_recipe_id = card.data("meal_id");
     get_random_valid_recipe(exclude_ids, null, function(recipe) {
         if ( recipe != -1 ) {
             update_card(card, recipe);
 
-            // replace rerolled recipe id in list of active ones
-            var index = exclude_ids.indexOf(current_recipe_id);
-            if (index > -1) {
-                exclude_ids.splice(index, 1);
+            // replace rerolled recipe id in list of active ones if allow_repeat
+            if ( allow_repeat ) {
+                var index = exclude_ids.indexOf(current_recipe_id);
+                if (index > -1) {
+                    exclude_ids.splice(index, 1);
+                }
             }
             exclude_ids.push(recipe["id"]);
         } else {

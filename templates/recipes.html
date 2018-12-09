@@ -22,7 +22,7 @@
     {% if row[key][0]|is_content %}
         <td>
             <ul class="td-list">
-                {% for item in row[key] %}
+                {% for item in row[key]|sort(attribute="ingredient") %}
                     <li>{{ content_to_td(item) }}</li>
                 {% endfor %}
             </ul>

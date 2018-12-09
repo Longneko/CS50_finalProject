@@ -38,7 +38,8 @@ form_set_edit = function(form_id, id, data=null) {
         instructions.val(data["instructions"]);
 
         // Set contents
-        for ( c of data["contents"]) {
+        var contents_sorted = data["contents"].sort((a, b) => a["ingredient"]["name"].localeCompare(b["ingredient"]["name"]));  // sort contents by ingredient name https://stackoverflow.com/questions/1129216/sort-array-of-objects-by-string-property-value#comment20851078_1129270;
+        for ( c of contents_sorted) {
             var ingredient = {
                 id: parseInt(c["ingredient"]["id"]),
                 name: c["ingredient"]["name"],
