@@ -64,20 +64,13 @@ def index():
     """Show user's home page"""
 
     user = User.from_db(db=db, id=session.get("user_id"))
-    recipe_ids = {m.id for m in user.meals}
-
-    recipes = [Recipe.from_db(db=db, id=id) for id in recipe_ids]
+    try:
+        recipe_ids = {m.id for m in user.meals}
+        recipes = [Recipe.from_db(db=db, id=id) for id in recipe_ids]
+    except AttributeError:
+        recipes=[]
 
     return render_template("index.html", meals=recipes)
-
-
-# TESTING ONLY. TO BE REMOVED!!!
-@app.route("/test_json")
-@login_required
-def test_json():
-    """Test fetching objects in JSON"""
-
-    return render_template("test_json.html")
 
 
 @app.route("/admin", defaults={"obj_type":None}, methods=["GET"])
