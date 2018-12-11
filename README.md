@@ -1,4 +1,4 @@
-# Work in progress (name is TBD)
+# FoodApp
 
 This is an entry for the Harward's CS50 (on edX). It is a web-app that allows users to get a meal suggestions based on their preferences. Suggestions include recipes for said meals. Basically, this is a simplified set of ideas completely ripped off of numerous such apps on the marked, namely Mealime (Thank you guys for being you!) :D.
 
@@ -29,4 +29,7 @@ Aside from the end-user intended experience, this app also provides an admin UI 
   - Jinja 2.1
   - Werkzeug 0.14.1
 - HTML5
-- Web UI also uses Bootstrap 4.1 and Jquery 3.1.1 imported online.
+- Web UI also uses Bootstrap 4.1, Jquery 3.1.1 and Font Awesome icons imported online.
+
+## Credits:
+- Default recipe image by imaginasty (PS'ed by D. Neverov): https://www.shutterstock.com/image-vector/illustrations-food-shape-cute-cat-milkshake-1132425281
