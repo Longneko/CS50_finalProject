@@ -4,6 +4,8 @@ This is an entry for the Harward's CS50 (on edX). It is a web-app that allows us
 
 Aside from the end-user intended experience, this app also provides an admin UI that allows to manage the DB via a web browser e.g. create meals and their constituents.
 
+See it does: https://youtu.be/o0ck04ZR7UI
+
 ## Available features:
 * DB interface (sqlite3):
   - Initializing new DB with set schema
