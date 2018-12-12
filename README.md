@@ -25,6 +25,11 @@ See it does: https://youtu.be/o0ck04ZR7UI
 * Web application:
   - Admin UI: managing users' meal related data
   - CSS and layout more fit for human beings (partially there)
+* General:
+  - User's favorite recipes functional
+  - Ingredients' amount units standartization and subsequent Shopping list
+  - Ingredients' states
+  - Auxuliary recipes (recipes of complex ingredients likes stocks, doughs etc. availalbe on demand in a separate menu)
 
 ## Requirements:
 - Python 3.6
@@ -37,8 +42,8 @@ See it does: https://youtu.be/o0ck04ZR7UI
 ## Credits:
 - Default recipe image by imaginasty (PS'ed by D. Neverov): https://www.shutterstock.com/image-vector/illustrations-food-shape-cute-cat-milkshake-1132425281
 
-## Quick start:
-# Running the App
+# Quick start:
+## Running the App
 Go to the root folder of the application and run the follownig commands:
 ```
 $ export FLASK_APP=application.py
@@ -51,7 +56,7 @@ $ flask run --host=0.0.0.0
 ```
 Please, refer to Flask's quickstart(http://flask.pocoo.org/docs/1.0/quickstart/) or deployment(http://flask.pocoo.org/docs/1.0/deploying/#deployment) for more detials if you are taking this app seriously for some reason.
 
-# Content
+## Content
 The app comes with a starter-pack database containing 10 complete recipes and a set of the most common food allergies.
 It also has a single user with 'admin' as both username and password. It can be used to grant admin access via the web interface to any of the users that register.
 
@@ -60,3 +65,11 @@ Should you decide to flush the DB and start your own, please, remove the 'backen
 $ python3 new_db.py
 ```
 This will create an empty DB with the same schema. With the exception of still having the 'admin' user not to have  to grant admin priviliges to new users manually within the DB or Python code.
+
+
+# NSFAQ (Not So Frequently Asked Questions)
+**Q:** But Valerii, why would you use Python's Sqlite3 instead of using SQLAlchemy ORM? Wouldn't that be a more logical choice?
+**A:** Of course it would. Well, I underestimated the amount of work I'd have to end up putting in when I started the project, and mastering new libraries seemed scary and painful at the time. Well, I  suffered even more pain eventually. Good, I deserved it. On the bright side, I got to show off some knowledge of SQLite in the code.
+
+**Q:** Why would anyone even read this README all the way to this point?
+**A:** Beats me.
