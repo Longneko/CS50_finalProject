@@ -4,7 +4,7 @@ Originally, this was my final project for the Harward's CS50 (on edX). But it go
 
 Aside from the end-user intended experience, this app also provides an admin UI that allows to manage the DB via a web browser e.g. create meals and their constituents.
 
-See it does: https://youtu.be/o0ck04ZR7UI
+See what it does: https://youtu.be/o0ck04ZR7UI
 
 ## Available features:
 * DB interface (sqlite3):
@@ -68,8 +68,8 @@ This will create an empty DB with the same schema. With the exception of still h
 
 
 # NSFAQ (Not So Frequently Asked Questions)
-**Q:** But Valerii, why would you use Python's Sqlite3 instead of using SQLAlchemy ORM? Wouldn't that be a more logical choice?
+**Q:** But Valerii, why would you use Python's Sqlite3 instead of using SQLAlchemy ORM? Wouldn't that be a more logical choice?  
 **A:** Of course it would. Well, I underestimated the amount of work I'd have to end up putting in when I started the project, and mastering new libraries seemed scary and painful at the time. Well, I  suffered even more pain eventually. Good, I deserved it. On the bright side, I got to show off some knowledge of SQLite in the code.
 
-**Q:** Why would anyone even read this README all the way to this point?
+**Q:** Why would anyone even read this README all the way to this point?  
 **A:** Beats me.
