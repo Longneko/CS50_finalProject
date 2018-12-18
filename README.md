@@ -34,6 +34,7 @@ See what it does: https://youtu.be/o0ck04ZR7UI
 ## Requirements:
 - Python 3.6
   - Flask 1.0
+    - Flask-session
   - Jinja 2.1
   - Werkzeug 0.14.1
 - HTML5
