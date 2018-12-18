@@ -44,6 +44,13 @@ See what it does: https://youtu.be/o0ck04ZR7UI
 - Default recipe image by imaginasty (PS'ed by D. Neverov): https://www.shutterstock.com/image-vector/illustrations-food-shape-cute-cat-milkshake-1132425281
 
 # Quick start:
+## Installing neccessary python packages
+You will need basic flask installation as well as the Flask-session extension. If you do not have those, run the following commands:
+```
+$ pip install flask
+$ pip install Flask-session
+```
+
 ## Running the App
 Go to the root folder of the application and run the follownig commands:
 ```
