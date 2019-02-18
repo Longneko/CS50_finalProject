@@ -1,6 +1,8 @@
 # FoodApp
 
-Originally, this was my final project for the HarwardX's CS50 (on edX) which is the first the first project of a considerable size of mine (so admittedly it could use a lot more best practices in it).
+Disclaimer: this is a first project project of mine so admittedly it could use a lot more best practices in it. Therefore the [Employees](https://github.com/Longneko/employees) is more representative of my skills as a later work, altought its scope is smaller.
+
+Originally, this was my final project for the HarwardX's CS50 (on edX) which is the first the first project of a considerable size of mine .
 Now it got sprinkled with just a bit of extra functional and ReadMe gibberish. It is a web app that allows users to get meal suggestions based on their preferences. Suggestions include recipes for said meals. Basically, this is a simplified set of ideas completely ripped off of numerous such apps on the marked, namely Mealime (Thank you guys for being you!) :D.
 
 Aside from the end-user intended experience, this app also provides an admin UI that allows to manage the DB via a web browser e.g. create meals and their constituents.
